@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+        <title>All sorts of things you can get wrong in Unicode, and why</title>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" href="./theme/css/main.css" type="text/css" />
+                <link href="http://richardharr.is/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="richardharr.is Atom Feed" />
+                
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+        <script src="./theme/js/jquery.simpletip-1.3.1.min.js" type="text/javascript" /></script>
+        <script src="./theme/js/unicode-tooltips.js" type="text/javascript" /></script>
+
+        <!--[if IE]>
+                <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+
+        <!--[if lte IE 7]>
+                <link rel="stylesheet" type="text/css" media="all" href="./css/ie.css"/>
+                <script src="./js/IE8.js" type="text/javascript"></script><![endif]-->
+
+        <!--[if lt IE 7]>
+                <link rel="stylesheet" type="text/css" media="all" href="./css/ie6.css"/><![endif]-->
+
+</head>
+
+<body id="index" class="home">
+        <header id="banner" class="body">
+                <h1><a href="./">richardharr.is </a></h1>
+                <!--<nav><ul>
+                                                                                                    <li ><a href="./category/japanese.html">Japanese</a></li>
+                                    <li ><a href="./category/perl.html">Perl</a></li>
+                                    <li class="active"><a href="./category/unicode.html">Unicode</a></li>
+                                </ul></nav>-->
+        </header><!-- /#banner -->
+        <section id="content" class="body">
+  <article>
+    <header>
+      <h1 class="entry-title">
+        <a href="./all-sorts-of-things-you-can-get-wrong-in-unicode-and-why.html" rel="bookmark"
+           title="Permalink to All sorts of things you can get wrong in Unicode, and why">All sorts of things you can get wrong in Unicode, and why</a></h1>
+      <a href="http://twitter.com/share" class="twitter-share-button" data-count="horizontal" data-via="_rjh">Tweet</a><script type="text/javascript" src="http://platform.twitter.com/widgets.js"></script>
+    </header>
+
+    <div class="entry-content">
+      <footer class="post-info">
+        <abbr class="published" title="2013-09-01T20:00:00">
+                01 Sep 2013
+        </abbr>
+
+                <address class="vcard author">
+                By <a class="url fn" href="./author/richard-harris.html">Richard Harris</a>
+        </address>
+        <p>In <a href="./category/unicode.html">Unicode</a>. </p>
+<p>tags: <a href="./tag/perl.html">perl</a>, <a href="./tag/unicode.html">unicode</a>, <a href="./tag/stackoverflow.html">stackoverflow</a></p>
+</footer><!-- /.post-info -->      <p>If you&rsquo;ve read this <a href="http://stackoverflow.com/questions/6162484/why-does-modern-perl-avoid-utf-8-by-default/6163129#6163129">StackOverflow post</a>, you know about all the things you can
+get wrong when using Unicode. This post explains <em>why</em>.</p>
+<p>If you are not too familiar with Unicode, please read my <a href="./unicode-in-five-minutes.html">introductory
+article</a> first.</p>
+<h2>General Unicode Assumptions</h2>
+<blockquote>
+<p>Code that assumes that web pages in Japanese or Chinese take up less space
+in UTF-16 than in UTF-8 is wrong.</p>
+</blockquote>
+<p>The majority of characters in an HTML document are markup (tags) and line
+terminators, not content. For <em>plain text</em>, UTF-16 is a more compact encoding,
+as it represents code points between U+0800 and U+FFFF in 2 bytes rather than 3 -
+this range includes most commonly used <abbr title="Chinese, Japanese, Korean and Vietnamese">CJKV</abbr> characters.</p>
+<p>Of course, HTML markup and line terminators are all firmly in the ASCII range,
+and represented as a single byte in UTF-8, but two in UTF-16.</p>
+<p>There&rsquo;s another downside to using UTF-16 in web pages: you&rsquo;ll have to specify
+the encoding in your HTTP header. On the other hand, browsers are able to treat
+UTF-8 data as ASCII until they find a charset <code>meta</code> tag.</p>
+<blockquote>
+<p>Code that assumes roundtrip equality on casefolding, like <code>lc(uc($s)) eq $s</code> or
+<code>uc(lc($s)) eq $s</code>, is completely broken and wrong.</p>
+</blockquote>
+<p>(Assuming <code>$s</code> is a single character)</p>
+<p>tchrist already provides an example of <span><span class="unichar" data-code="03C3" data-name="GREEK SMALL LETTER SIGMA" title="GREEK SMALL LETTER SIGMA (U+03C3)">&sigma;</span></span> and <span><span class="unichar" data-code="03C2" data-name="GREEK SMALL LETTER FINAL SIGMA" title="GREEK SMALL LETTER FINAL SIGMA (U+03C2)">&sigmaf;</span></span>. The latter is for
+the last character in a word; both have an uppercase <span><span class="unichar" data-code="03A3" data-name="GREEK CAPITAL LETTER SIGMA" title="GREEK CAPITAL LETTER SIGMA (U+03A3)">&Sigma;</span><span> GREEK CAPITAL LETTER SIGMA</span></span> but the lowercase of
+<span><span class="unichar" data-code="03A3" data-name="GREEK CAPITAL LETTER SIGMA" title="GREEK CAPITAL LETTER SIGMA (U+03A3)">&Sigma;</span></span> is <span><span class="unichar" data-code="03C3" data-name="GREEK SMALL LETTER SIGMA" title="GREEK SMALL LETTER SIGMA (U+03C3)">&sigma;</span></span>.</p>
+<p>There&rsquo;s also <span><span class="unichar" data-code="00DF" data-name="LATIN SMALL LETTER SHARP S" title="LATIN SMALL LETTER SHARP S (U+00DF)">&szlig;</span><span> LATIN SMALL LETTER SHARP S</span></span> which is &lsquo;SS&rsquo; in uppercase, and therefore &lsquo;ss&rsquo; when mapped
+back to lowercase!</p>
+<p>Finally, there&rsquo;s <span><span class="unichar" data-code="01F2" data-name="LATIN CAPITAL LETTER D WITH SMALL LETTER Z" title="LATIN CAPITAL LETTER D WITH SMALL LETTER Z (U+01F2)">&#498;</span></span> which is <span><span class="unichar" data-code="01F1" data-name="LATIN CAPITAL LETTER DZ" title="LATIN CAPITAL LETTER DZ (U+01F1)">&#497;</span></span> in upper-case, and <span><span class="unichar" data-code="01F3" data-name="LATIN SMALL LETTER DZ" title="LATIN SMALL LETTER DZ (U+01F3)">&#499;</span></span> after
+mapping to lower-case again.</p>
+<p>When you need to do case-insensitive comparisons, do a Unicode casefold on all
+the strings and compare those. Casefolding is explicitly a one-way operation.</p>
+<blockquote>
+<p>Code that assumes changing the case doesn&rsquo;t change the length of the string is
+broken.</p>
+</blockquote>
+<p>There are plenty of counterexamples, including <span><span class="unichar" data-code="FB00" data-name="LATIN SMALL LIGATURE FF" title="LATIN SMALL LIGATURE FF (U+FB00)">&#64256;</span></span> which uppercases to &lsquo;FF&rsquo;;
+the aforementioned <span><span class="unichar" data-code="00DF" data-name="LATIN SMALL LETTER SHARP S" title="LATIN SMALL LETTER SHARP S (U+00DF)">&szlig;</span></span>; and 101 other codepoints.</p>
+<blockquote>
+<p>Code that believes that stuff like <code>/s/i</code> can only match &ldquo;S&rdquo; or &ldquo;s&rdquo; is broken
+and wrong. You&rsquo;d be surprised.</p>
+</blockquote>
+<p>It also matches <span><span class="unichar" data-code="017F" data-name="LATIN SMALL LETTER LONG S" title="LATIN SMALL LETTER LONG S (U+017F)">&#383;</span></span>. Similarly, <code>/k/i</code> matches <span><span class="unichar" data-code="212A" data-name="KELVIN SIGN" title="KELVIN SIGN (U+212A)">&#8490;</span><span> KELVIN SIGN</span></span>.
+In both cases, the <code>/i</code> flag is required.</p>
+<blockquote>
+<p>Code that assumes that it cannot use <code>\x{FFFF}</code> is wrong.</p>
+</blockquote>
+<p>The codepoint U+FFFF is illegal for &lsquo;open interchange&rsquo;; that is, it can be used
+<em>internally</em> but should not form part of your program&rsquo;s output.</p>
+<blockquote>
+<p>Code that believes things like &#8360; contain any letters in them is wrong.</p>
+</blockquote>
+<p>I am unsure about this because <span><span class="unichar" data-code="20A8" data-name="RUPEE SIGN" title="RUPEE SIGN (U+20A8)">&#8360;</span></span> has a <em>compatibility decomposition</em> to &lsquo;R&rsquo; &lsquo;s&rsquo;
+(see the <a href="http://www.unicode.org/charts/PDF/U20A0.pdf">code chart</a>). In general though, <span><span class="unichar" data-code="20A8" data-name="RUPEE SIGN" title="RUPEE SIGN (U+20A8)">&#8360;</span></span>  won&rsquo;t match a regex
+search for &lsquo;R&rsquo; or &lsquo;s&rsquo; unless decomposed as above. It also won&rsquo;t match <code>\p{Letter}</code>
+or <code>\p{Alphabetic}</code>.</p>
+<blockquote>
+<p>Code that converts unknown characters to ? is broken, stupid, braindead, and
+runs contrary to the standard recommendation, which says NOT TO DO THAT!
+RTFM for why not.</p>
+</blockquote>
+<p>Unicode says text processors are allowed to not know about a codepoint (e.g.
+higher Unicode version, or a Private Use character) but they should pass it
+through unchanged. Replacing them with &lsquo;?&rsquo; destroys data.</p>
+<p>Not to be confused with <span><span class="unichar" data-code="FFFD" data-name="REPLACEMENT CHARACTER" title="REPLACEMENT CHARACTER (U+FFFD)">&#65533;</span><span> REPLACEMENT CHARACTER (U+FFFD)</span></span>, used to replace
+characters that are unknown or not representable in Unicode. <a href="http://www.unicode.org/standard/principles.html#Conformance">Defined
+here</a>.</p>
+<blockquote>
+<p>Code that assumes only letters have case is broken. Beyond just letters, it
+turns out that numbers, symbols, and even marks have case. In fact,
+changing the case can even make something change its main general category,
+like a <code>\p{Mark}</code> turning into a <code>\p{Letter}</code>. It can also make it switch from one
+script to another.</p>
+</blockquote>
+<p>I&rsquo;ll illustrate this with examples.</p>
+<ul>
+<li>Roman numerals such as <span><span class="unichar" data-code="2177" data-name="SMALL ROMAN NUMERAL EIGHT" title="SMALL ROMAN NUMERAL EIGHT (U+2177)">&#8567;</span></span>  and <span><span class="unichar" data-code="2167" data-name="ROMAN NUMERAL EIGHT" title="ROMAN NUMERAL EIGHT (U+2167)">&#8551;</span></span> clearly have case.</li>
+<li>The <span><span class="unichar" data-code="00B5" data-name="MICRO SIGN" title="MICRO SIGN (U+00B5)">&micro;</span><span> MICRO SIGN</span></span> resides in the Common script for compatibility with Latin-1,
+   but uppercases to <span><span class="unichar" data-code="039C" data-name="GREEK CAPITAL LETTER MU" title="GREEK CAPITAL LETTER MU (U+039C)">&Mu;</span><span> GREEK CAPITAL LETTER MU</span></span>, in Greek.</li>
+<li>Letters in circles such as <span><span class="unichar" data-code="24D7" data-name="CIRCLED LATIN SMALL LETTER H" title="CIRCLED LATIN SMALL LETTER H (U+24D7)">&#9431;</span></span> are cased, but have
+   <code>\p{General_Category=Symbol}</code>.</li>
+<li>The mark <span><span class="unichar" data-code="0345" data-name="COMBINING GREEK YPOGEGRAMMENI" title="COMBINING GREEK YPOGEGRAMMENI (U+0345)">&#9676;&#837;</span><span> COMBINING GREEK YPOGEGRAMMENI</span></span> is cased; it uppercases to <span><span class="unichar" data-code="0399" data-name="GREEK CAPITAL LETTER IOTA" title="GREEK CAPITAL LETTER IOTA (U+0399)">&Iota;</span><span> GREEK CAPITAL LETTER IOTA</span></span>.</li>
+</ul>
+<p>As an aside, 129 codepoints are <code>\p{Cased}</code>, but map only to themselves.</p>
+<blockquote>
+<p>Code that assumes that case is never locale-dependent is broken.</p>
+</blockquote>
+<p>Casing is dependent on both language and the context of the character (for
+example if it appears in the middle or at the end of a word). See
+<a href="ftp://ftp.unicode.org/Public/UNIDATA/SpecialCasing.txt">SpecialCasing</a> for a few examples.</p>
+<p>One example of language-dependent casing is whether or not to keep accents in
+capital letters.</p>
+<blockquote>
+<p>Code that assumes there is only two cases is broken. There&rsquo;s also titlecase.</p>
+</blockquote>
+<p>Titlecase is used for ligatures and digraphs such as &lsquo;fl&rsquo;, &lsquo;dz&rsquo; and &lsquo;lj&rsquo;, which
+need special handling. For example, <span><span class="unichar" data-code="01C7" data-name="LATIN CAPITAL LETTER LJ" title="LATIN CAPITAL LETTER LJ (U+01C7)">&#455;</span></span> titlecases to <span><span class="unichar" data-code="01C8" data-name="LATIN CAPITAL LETTER L WITH SMALL LETTER J" title="LATIN CAPITAL LETTER L WITH SMALL LETTER J (U+01C8)">&#456;</span></span> rather than <span><span class="unichar" data-code="01C9" data-name="LATIN SMALL LETTER LJ" title="LATIN SMALL LETTER LJ (U+01C9)">&#457;</span></span>.</p>
+<blockquote>
+<p>Code that assumes characters like &gt; always points to the right and &lt; always
+points to the left are wrong &mdash; because they in fact do not.</p>
+</blockquote>
+<p>When using Right-to-Left rendering, glyphs such as &gt; change appearance to &lt; to
+account for the change of direction. )Otherwise parentheses would look odd(</p>
+<blockquote>
+<p>Code that assumes that all <code>\p{Math}</code> code points are visible characters is
+wrong.</p>
+</blockquote>
+<p>Four are invisible! They are intended for use in equations:</p>
+<ul>
+<li><span><span class="unichar" data-code="2061" data-name="FUNCTION APPLICATION" title="FUNCTION APPLICATION (U+2061)">U+2061</span><span> FUNCTION APPLICATION</span></span> &mdash; e.g. sin&#8289;<em>x</em></li>
+<li><span><span class="unichar" data-code="2062" data-name="INVISIBLE TIMES" title="INVISIBLE TIMES (U+2062)">U+2062</span><span> INVISIBLE TIMES</span></span> &mdash; e.g. 2&#8290;<em>n</em></li>
+<li><span><span class="unichar" data-code="2063" data-name="INVISIBLE SEPARATOR" title="INVISIBLE SEPARATOR (U+2063)">U+2063</span><span> INVISIBLE SEPARATOR</span></span> &mdash; matrix indices: a<sub>i&#8291;j</sub></li>
+<li><span><span class="unichar" data-code="2064" data-name="INVISIBLE PLUS" title="INVISIBLE PLUS (U+2064)">U+2064</span><span> INVISIBLE PLUS</span></span> &mdash; intended for fractions, such as 3&#8292;&frac12;</li>
+</ul>
+<p>This could allow renderers to do nifty things like line break in the middle of
+2&#8290;<em>n</em> and insert a multiplication sign (&times;). The invisible plus is
+especially weird because as an operator, it would hold a higher precedence than
+multiplication!</p>
+<p>Realistically though, dedicated math markup is best for this sort of thing.</p>
+<blockquote>
+<p>Code that believes you can use <span><span class="unichar" data-code="1F42A" data-name="DROMEDARY CAMEL" title="DROMEDARY CAMEL (U+1F42A)">&#128042;</span></span> (Perl) printf widths to pad and justify Unicode data
+is broken and wrong.</p>
+</blockquote>
+<p>You can&rsquo;t, because some characters have no width (combining accents, control
+characters) while some have double-width (CJKV ideographs, &lsquo;full-width&rsquo; letters).</p>
+<p>Most likely <code>printf</code> will interpret each codepoint as a character with a width
+of one, so for things like Chinese it&rsquo;ll pad completely wrong.</p>
+<p>For Perl the solution is <a href="https://metacpan.org/module/Unicode::GCString">Unicode::GCString</a>.</p>
+<blockquote>
+<p>Code that assumes every code point takes up no more than one print column is broken.</p>
+</blockquote>
+<p>Ideographic characters (CJKV) typically take up two print columns. More generally,
+anything with <code>East_Asian_Width</code> equal to <code>Wide</code> or <code>Fullwidth</code> (<span><span class="unichar" data-code="1108" data-name="HANGUL CHOSEONG SSANGPIEUP" title="HANGUL CHOSEONG SSANGPIEUP (U+1108)">&#4360;</span></span>, <span><span class="unichar" data-code="FFE1" data-name="FULLWIDTH POUND SIGN" title="FULLWIDTH POUND SIGN (U+FFE1)">&#65505;</span></span>).
+This includes variants of the Latin alphabet, punctuation and numbers, which are
+designed to play nicely with CJKV characters.</p>
+<blockquote>
+<p>Code that assumes that diacritics <code>\p{Diacritic}</code> and marks <code>\p{Mark}</code> are the
+same thing is broken.</p>
+</blockquote>
+<p>Confusing nomenclature. If you care, read on.</p>
+<p><code>\p{Mark}</code> is a general category composed of <code>\p{Nonspacing_Mark}</code> (zero-width),
+<code>\p{Spacing_Mark}</code> (positive width) and <code>\p{Enclosing_Mark}</code>, all of which are
+combining characters. <code>\p{Diacritic}</code> is a character property meaning &lsquo;a character
+that linguistically modifies the meaning of another character to which they apply&rsquo;,
+but may or may not be combining.</p>
+<p>Marks (combining characters) that are not diacritics include general purpose combining
+characters like small Latin letters <span><span class="unichar" data-code="036A" data-name="COMBINING LATIN SMALL LETTER H" title="COMBINING LATIN SMALL LETTER H (U+036A)">&#9676;&#874;</span></span>, vowel signs<sup id="fnref:vowel"><a class="footnote-ref" href="#fn:vowel" rel="footnote">1</a></sup>, and variation selectors.
+There are 1,068 in total.</p>
+<p>Diacritics that are not marks include Latin-1 characters such as <span><span class="unichar" data-code="005E" data-name="CIRCUMFLEX ACCENT" title="CIRCUMFLEX ACCENT (U+005E)">^</span></span> and <span><span class="unichar" data-code="0060" data-name="GRAVE ACCENT" title="GRAVE ACCENT (U+0060)">`</span></span>,
+full-width accents (<span><span class="unichar" data-code="FF3E" data-name="FULLWIDTH CIRCUMFLEX ACCENT" title="FULLWIDTH CIRCUMFLEX ACCENT (U+FF3E)">&#65342;</span></span>, <span><span class="unichar" data-code="FF40" data-name="FULLWIDTH GRAVE ACCENT" title="FULLWIDTH GRAVE ACCENT (U+FF40)">&#65344;</span></span>) and &lsquo;modifier letters&rsquo; such as <span><span class="unichar" data-code="02B0" data-name="MODIFIER LETTER SMALL H" title="MODIFIER LETTER SMALL H (U+02B0)">&#688;</span></span>. There
+are 209 in total.</p>
+<blockquote>
+<p>Code that assumes that all <code>\p{Mark}</code> characters take up zero print columns is broken.</p>
+</blockquote>
+<p>As discussed, <code>\p{Mark}</code> includes spacing characters of non-zero width. They are mostly
+vowel signs.</p>
+<blockquote>
+<p>Code that assumes <code>\p{GC=Dash_Punctuation}</code> covers as much as <code>\p{Dash}</code> is broken.</p>
+</blockquote>
+<p>Four code points in other general categories have the <code>Dash</code> property:
+<span><span class="unichar" data-code="2053" data-name="SWUNG DASH" title="SWUNG DASH (U+2053)">&#8275;</span><span> SWUNG DASH</span></span>, <span><span class="unichar" data-code="207B" data-name="SUPERSCRIPT MINUS" title="SUPERSCRIPT MINUS (U+207B)">&#8315;</span><span> SUPERSCRIPT MINUS</span></span>, <span><span class="unichar" data-code="208B" data-name="SUBSCRIPT MINUS" title="SUBSCRIPT MINUS (U+208B)">&#8331;</span><span> SUBSCRIPT MINUS</span></span>, <span><span class="unichar" data-code="2212" data-name="MINUS SIGN" title="MINUS SIGN (U+2212)">&minus;</span><span> MINUS SIGN</span></span>. Exciting! The latter three are in the &ldquo;Math
+Symbol&rdquo; category.</p>
+<blockquote>
+<p>Code that assumes dash, hyphens, and minuses are the same thing as each other,
+or that there is only one of each, is broken and wrong.</p>
+</blockquote>
+<p>Hyphens and minus signs are naturally different, and the main reason we use <span><span class="unichar" data-code="002D" data-name="HYPHEN-MINUS" title="HYPHEN-MINUS (U+002D)">-</span><span> HYPHEN-MINUS</span></span>
+for both is ASCII legacy. Unicode supplies dedidated characters for both, <span><span class="unichar" data-code="2010" data-name="HYPHEN" title="HYPHEN (U+2010)">&#8208;</span><span> HYPHEN</span></span>
+and <span><span class="unichar" data-code="2212" data-name="MINUS SIGN" title="MINUS SIGN (U+2212)">&minus;</span><span> MINUS SIGN</span></span>, which your editor could substitute automatically.</p>
+<p>Naturally there are lots of variants of each, such as <span><span class="unichar" data-code="2013" data-name="EN DASH" title="EN DASH (U+2013)">&ndash;</span><span> EN DASH</span></span> and <span><span class="unichar" data-code="2014" data-name="EM DASH" title="EM DASH (U+2014)">&mdash;</span><span> EM DASH</span></span>,
+<span><span class="unichar" data-code="2E17" data-name="DOUBLE OBLIQUE HYPHEN" title="DOUBLE OBLIQUE HYPHEN (U+2E17)">&#11799;</span><span> DOUBLE OBLIQUE HYPHEN</span></span>, <span><span class="unichar" data-code="2796" data-name="HEAVY MINUS SIGN" title="HEAVY MINUS SIGN (U+2796)">&#10134;</span><span> HEAVY MINUS SIGN</span></span>.</p>
+<h2>Regular Expression Assumptions</h2>
+<blockquote>
+<p>Code that believes <code>\p{InLatin}</code> is the same as <code>\p{Latin}</code> is heinously broken.</p>
+</blockquote>
+<p><code>\p{InLatin}</code> does not exist in my Perl 5.16, but <code>\p{InLatin1}</code> does: it&rsquo;s the
+same as <code>\p{Block=Latin1}</code> (filters by block). In contrast, <code>\p{Latin}</code> is
+equivalent to <code>\p{Script=Latin}</code> (filters by script). See <a href="http://perldoc.perl.org/perluniprops.html">perluniprops</a> for
+gory details.</p>
+<p>These are clearly different; the Latin-1 block contains all kinds of junk,
+including control characters, superscripts, fractions and currency signs. In the
+other direction, Latin can be found in the ASCII block, and elsewhere.</p>
+<blockquote>
+<p>Code that believes that <code>\p{InLatin}</code> is almost ever useful is almost certainly
+wrong.</p>
+</blockquote>
+<p>Again, assuming <code>\p{InLatin1}</code>, it would be useless as the block has such a
+diverse set of characters.</p>
+<blockquote>
+<p>Code that believes that given <code>$FIRST_LETTER</code> as the first letter in some
+alphabet and <code>$LAST_LETTER</code> as the last letter in that same alphabet, that
+<code>[${FIRST_LETTER}-${LAST_LETTER}]</code> has any meaning whatsoever is almost
+always completely broken and wrong and meaningless.</p>
+</blockquote>
+<p>Unicode places no semantic value on the codepoint number. It may or may not be
+related to nearby codepoints; if it is, it&rsquo;s usually just because that was
+convenient when assigning them.</p>
+<p>Alphabets vary by locale; while <code>[a-z]</code> works OK for English (many may disagree&hellip;),
+the Danish/Norweigian alphabet includes &aelig;, &oslash;, and &aring; at the end. <code>[a-&aring;]</code> matches a
+huge chunk of ASCII and Latin-1, included most capital accented characters,
+Latin-1 control characters, and punctuation. Not ideal.</p>
+<blockquote>
+<p>Code that assumes <code>\w</code> contains only letters, digits, and underscores is wrong.</p>
+</blockquote>
+<p><code>\w</code> is generally locale specific for any <abbr title="Portable Operating System Interface, a family of OS compatibility standards">POSIX</abbr>-compatible regex engine.</p>
+<p>For Perl 5.14+, <code>\w</code> matches &ldquo;anything that is a letter or digit
+<em>somewhere</em> in the world&rdquo;, but <em>also</em> includes &ldquo;connector punctuation marks and
+Unicode marks&rdquo; (<a href="http://perldoc.perl.org/perlre.html">perlre</a>). This means vowel signs and combining accents. Use
+the regular expression <code>/a</code> flag to get a more legacy behaviour where <code>\w</code> is just
+<code>[a-z0-9_]</code> and <code>\d</code> is <code>[0-9]</code>.</p>
+<p>In other languages, see documentation to see which definition of <code>\w</code> applies.</p>
+<h2>Perl Unicode Assumptions</h2>
+<blockquote>
+<p>Code that assumes Perl uses UTF&#8209;8 internally is wrong.
+Code that assumes Perl code points are limited to <code>0x10_FFFF</code> is wrong.</p>
+</blockquote>
+<p>Wrong in multiple ways.</p>
+<ul>
+<li>Perl uses a <a href="http://perldoc.perl.org/Encode.html#UTF-8-vs.-utf8-vs.-UTF8">very permissive variant</a> of UTF-8 it calls &lsquo;utf8&rsquo; which allows
+   very high codepoints (beyond <code>0x10_FFFF</code>) and illegal characters or
+   sequences.</li>
+<li>Perl may use <abbr title="aka Latin-1">ISO-8859-1</abbr> if the string&rsquo;s <code>UTF8</code> flag is unset.</li>
+<li>On <abbr title="Extended Binary Coded Decimal Interchange Code, used by IBM mainframes">EBCDIC</abbr> platforms, different encodings may be used.</li>
+</ul>
+<p>The idea is that Perl&rsquo;s internal representation is abstract; you should not rely
+on it; you should be blissfully unaware of it and just <a href="http://perldoc.perl.org/Encode.html">decode</a> input
+data into Perl&rsquo;s representation, and then <a href="http://perldoc.perl.org/Encode.html">encode</a> when outputting it.</p>
+<p>Unfortunately that is not true of Perls before 5.14 due to a variety of bugs,
+including <a href="http://perldoc.perl.org/perlunicode.html#The-%22Unicode-Bug%22">The Unicode Bug</a>.</p>
+<blockquote>
+<p>Code that assumes you can set <code>$/</code> to something that will work with any valid
+line separator is wrong.</p>
+</blockquote>
+<p>The set of valid Unicode linebreak sequences requires a regex, but <code>$/</code> can only
+be a single string. You can use <code>\R</code> in regular expressions to do The Right Thing<span><span class="unichar" data-code="2122" data-name="TRADE MARK SIGN" title="TRADE MARK SIGN (U+2122)">&trade;</span></span>.
+(see <a href="http://perldoc.perl.org/perlrebackslash.html#Misc">perlrebackslash</a>)</p>
+<h3>Much Ado About <code>\X</code></h3>
+<p>So <code>\X</code> matches an &lsquo;extended grapheme cluster&rsquo; which is basically what a user would
+think of as a character. It accounts for decomposed Hangul, Latin characters with
+combining diacritics, and so on.</p>
+<blockquote>
+<p>Code that uses <code>\PM\pM*</code> to find grapheme clusters instead of using <code>\X</code> is broken and wrong.</p>
+</blockquote>
+<p><code>\PM\pM*</code> means a non-mark char followed by zero or more mark chars. It has a couple
+of major differences I think:</p>
+<ul>
+<li><code>\X</code> handles decomposed Hangul and regional indicators</li>
+<li><code>\X</code> uses Unicode&rsquo;s <code>Grapheme_Cluster_Break</code> properties instead of the <code>Mark</code> general category.</li>
+</ul>
+<p>In short, it&rsquo;s much better, but more complicated, so <abbr title="Perl Compatible Regular Expressions library, used by many other languages">PCRE</abbr> implements <code>\X</code> as <code>\PM\pM*</code> instead.</p>
+<blockquote>
+<p>Code that assumes <code>\X</code> can never start with a <code>\p{Mark}</code> character is wrong.</p>
+</blockquote>
+<p>Vowel signs (again!) are in <code>\p{Grapheme_Base}</code> but also <code>\p{Mark}</code>, so <code>\X</code> may start with them.
+This makes sense if you think about it.</p>
+<p>If it&rsquo;s at the start of the string, <code>\X</code> will match anything.</p>
+<blockquote>
+<p>Code that assumes there is a limit to the number of code points in a row that
+just one <code>\X</code> can match is wrong.</p>
+</blockquote>
+<p>This can be seen from the grammar of <code>\X</code>:</p>
+<div class="codehilite"><pre># All the tables with _X_ in their names are used in defining \X handling,
+# and are based on the Unicode GCB property.  Basically, \X matches:
+#   CR LF
+#   | Prepend* Begin Extend*
+#   | .
+# Begin is:           ( Special_Begin | ! Control )
+# Begin is also:      ( Regular_Begin | Special_Begin )
+#   where Regular_Begin is defined as ( ! Control - Special_Begin )
+# Special_Begin is:   ( Regional-Indicator+ | Hangul-syllable )
+# Extend is:          ( Grapheme_Extend | Spacing_Mark )
+# Control is:         [ GCB_Control | CR | LF ]
+# Hangul-syllable is: ( T+ | ( L* ( L | ( LVT | ( V | LV ) V* ) T* ) ))
+</pre></div>
+
+
+<p>(Prepend, Extend, L/T/V etc. come from the <code>Grapheme_Cluster_Break</code> property).</p>
+<p>So it&rsquo;ll slurp up all regional indicator characters and any number of L/V/T
+components in a decomposed Hangul syllable construction.</p>
+<blockquote>
+<p>Code that assumes that <code>\X</code> can never hold two non-<code>\p{Mark}</code> characters is wrong.</p>
+</blockquote>
+<p>Hangul components aren&rsquo;t in <code>\p{Mark}</code>, for example. There are also <code>\p{Grapheme_Extend}</code>
+code points that lie outside <code>\p{Mark}</code>, such as <span><span class="unichar" data-code="200C" data-name="ZERO WIDTH NON-JOINER" title="ZERO WIDTH NON-JOINER (U+200C)">U+200C</span></span> and <span><span class="unichar" data-code="200D" data-name="ZERO WIDTH JOINER" title="ZERO WIDTH JOINER (U+200D)">U+200D</span></span>.</p>
+<h3>Encoding Assumptions</h3>
+<blockquote>
+<p>Code that believes UTF-16 is a fixed-width encoding is stupid, broken, and wrong.</p>
+</blockquote>
+<p>The confusion arises from UTF-16 using a fixed 2 bytes for every codepoint inside the
+<abbr title="Basic Multilingual Plane">BMP</abbr>, which is the 63K most common codepoints. Outside the BMP (~1M codepoints),
+they must be represented in 4 bytes via a surrogate pair consisting of one high
+and one low surrogate character.</p>
+<p>Many programs assume UTF-16 is fixed width for performance reasons. These programs are
+broken unless they account for surrogates at some stage.</p>
+<p>Even if you account for this though, you still need to worry about combining
+characters, whatever the encoding; one codepoint is not one character.</p>
+<blockquote>
+<p>Code that assumes the CESU-8 is a valid UTF encoding is wrong. Likewise, code that thinks
+encoding U+0000 as &ldquo;\xC0\x80&rdquo; is UTF-8 is broken and wrong.</p>
+</blockquote>
+<p><a href="http://www.unicode.org/reports/tr26/">CESU-8</a> is easily confused with UTF-8; it is similar, except codepoints outside the BMP
+are represented with UTF-16 surrogates which are themselves &lsquo;encoded&rsquo; in a similar manner to
+UTF-8. It is not a valid UTF encoding because UTF encodings don&rsquo;t define how to encode surrogates.
+It&rsquo;s also not part of the Unicode Standard.</p>
+<p>Null bytes are encoded as <code>\xC0\x80</code> to allow <code>\x00</code> to be used as an end-of-string marker
+in C-like languages. This is not valid UTF-8 because UTF-8 requires the most minimal byte sequence to be
+used for each codepoint, which for codepoint 0 would be <code>\x00</code>.</p>
+<p>Curiously, Oracle and MySQL databases use CESU-8 internally but call it &lsquo;UTF-8&rsquo;.</p>
+<h3>In case of mistakes</h3>
+<p>If you come across anything misleading or just plain wrong, please <a href="mailto:richardjharris@gmail.com">e-mail me</a>.</p>
+<h3>Acknowledgements</h3>
+<p>Thanks to James Stanley for catching some formatting errors.</p>
+<div class="footnote">
+<hr />
+<ol>
+<li id="fn:vowel">
+<p>Vowel signs are used in scripts such Arabic where written vowels are optional.&nbsp;<a class="footnote-backref" href="#fnref:vowel" rev="footnote" title="Jump back to footnote 1 in the text">&#8617;</a></p>
+</li>
+</ol>
+</div>
+    </div><!-- /.entry-content -->
+        <div class="comments">
+      <h2>Comments !</h2>
+      <div id="disqus_thread"></div>
+      <script type="text/javascript">
+        var disqus_identifier = "all-sorts-of-things-you-can-get-wrong-in-unicode-and-why.html";
+        (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://richardharris.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+      </script>
+    </div>
+    
+  </article>
+</section>
+        <section id="extras" class="body">
+                        <div class="social">
+                        <h2>social</h2>
+                        <ul>
+                            <li><a href="http://richardharr.is/feeds/all.atom.xml" type="application/atom+xml" rel="alternate">atom feed</a></li>
+                            
+                                                    <li><a href="https://www.fitocracy.com/profile/rjh/">Fitocracy</a></li>
+                                                    <li><a href="https://github.com/richardjharris/">GitHub</a></li>
+                                                    <li><a href="https://stackoverflow.com/users/74496/rjh">StackOverflow</a></li>
+                                                    <li><a href="https://www.flickr.com/photos/richardjharris/">Flickr</a></li>
+                                                    <li><a href="https://www.linkedin.com/profile/view?id=117798931">LinkedIn</a></li>
+                                                    <li><a href="https://twitter.com/_rjh">@_rjh</a></li>
+                                                </ul>
+                </div><!-- /.social -->
+                                <div class="blogroll">
+                        <h2>blogroll</h2>
+                        <ul>
+                                                    <li><a href="http://news.netcraft.com">Netcraft News</a></li>
+                                                    <li><a href="http://blog.peter-r.co.uk">Peter R's Blog</a></li>
+                                                    <li><a href="http://incoherency.co.uk/">incoherency.co.uk</a></li>
+                                                    <li><a href="http://ben.dartoxia.com/">Dartoxia.com</a></li>
+                                                    <li><a href="http://ferozsalam.com/">Feroz Salam</a></li>
+                                                    <li><a href="http://www.adanscotney.com/">Adan's Food Blog</a></li>
+                                                    <li><a href="http://jon.isbell.net/">Jon Isbell</a></li>
+                                                    <li><a href="http://jes.xxx/blog/">Jes's Blog</a></li>
+                                                </ul>
+                        <ul style="clear: left">
+                        <li href="http://stackoverflow.com/users/74496/rjh">
+                          <img src="http://stackoverflow.com/users/flair/74496.png" width="208" height="58" alt="profile for rjh at Stack Overflow, Q&amp;A for professional and enthusiast programmers" title="profile for rjh at Stack Overflow, Q&amp;A for professional and enthusiast programmers">
+                        </li>
+                        </ul>
+                    </div>
+                </div><!-- /.blogroll -->
+                </section><!-- /#extras -->
+
+        <footer id="contentinfo" class="body">
+           <p>Powered by <a href="http://getpelican.com/">Pelican</a> <b>&middot;</b> Theme by <a href="http://coding.smashingmagazine.com/2009/08/04/designing-a-html-5-layout-from-scratch/">Smashing Magazine</a></p>
+        </footer>
+
+    <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-38981161-1']);
+    _gaq.push(['_trackPageview']);
+    (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+    </script>
+<script type="text/javascript">
+    var disqus_shortname = 'richardharris';
+    (function () {
+        var s = document.createElement('script'); s.async = true;
+        s.type = 'text/javascript';
+        s.src = 'http://' + disqus_shortname + '.disqus.com/count.js';
+        (document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
+    }());
+</script>
+</body>
+</html>

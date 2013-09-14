@@ -1,0 +1,366 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"><title>richardharr.is</title><link href="http://richardharr.is/" rel="alternate"></link><link href="http://richardharr.is/feeds/perl.atom.xml" rel="self"></link><id>http://richardharr.is/</id><updated>2013-09-13T10:00:00+01:00</updated><entry><title>A fun gotcha with magic &lt;&gt;</title><link href="http://richardharr.is/a-fun-gotcha-with-magic.html" rel="alternate"></link><updated>2013-09-13T10:00:00+01:00</updated><author><name>Richard Harris</name></author><id>tag:richardharr.is,2013-09-13:a-fun-gotcha-with-magic.html</id><summary type="html">&lt;p&gt;Despite liberally sprinkling my shell scripts with &lt;code&gt;-e&lt;/code&gt;&lt;sup id="fnref:eflag"&gt;&lt;a class="footnote-ref" href="#fn:eflag" rel="footnote"&gt;1&lt;/a&gt;&lt;/sup&gt; and &lt;code&gt;-o pipefail&lt;/code&gt;&lt;sup id="fnref:pipeflag"&gt;&lt;a class="footnote-ref" href="#fn:pipeflag" rel="footnote"&gt;2&lt;/a&gt;&lt;/sup&gt;,
+and adding defense with &lt;code&gt;use autodie;&lt;/code&gt; in Perl scripts, there&amp;rsquo;s a still some logic in
+&lt;em&gt;Perl&amp;rsquo;s core&lt;/em&gt; that allows an error to slip by unnoticed.&lt;/p&gt;
+&lt;h2&gt;Problem&lt;/h2&gt;
+&lt;p&gt;Consider a typical Perl script with a read loop:&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="c1"&gt;#!/usr/bin/perl&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="n"&gt;strict&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="n"&gt;warnings&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="n"&gt;autodie&lt;/span&gt; &lt;span class="s"&gt;':io'&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+
+&lt;span class="k"&gt;while&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="nb"&gt;chomp&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$size&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$toppings&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;split&lt;/span&gt; &lt;span class="sr"&gt;/\t/&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$_&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Due to the magic &lt;code&gt;&amp;lt;&amp;gt;&lt;/code&gt;, the script can be called either as &lt;code&gt;order-pizza pizzalist&lt;/code&gt;
+(where &lt;code&gt;pizzalist&lt;/code&gt; is a file) or &lt;code&gt;order-pizza &amp;lt; pizzalist&lt;/code&gt; (via standard input).&lt;/p&gt;
+&lt;p&gt;The problem occurs when &lt;code&gt;pizzalist&lt;/code&gt; does &lt;em&gt;not exist&lt;/em&gt;: Perl will complain:&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;Can't open pizzalist: No such file or directory ...
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&amp;hellip;but the script will continue as if &lt;code&gt;&amp;lt;&amp;gt;&lt;/code&gt; returned &lt;code&gt;undef&lt;/code&gt; (exiting the loop)
+and terminate with zero exit status! Indicating success, despite the error.&lt;/p&gt;
+&lt;p&gt;This caused a problem for me when a file went missing and this script suddenly
+did nothing, but we didn&amp;rsquo;t pick up on it immediately because the script exited
+just fine!&lt;/p&gt;
+&lt;h2&gt;Solution&lt;/h2&gt;
+&lt;p&gt;This is actually documented in the &lt;a href="http://perldoc.perl.org/functions/readline.html"&gt;readline perldoc&lt;/a&gt; for newer Perl
+versions; the workaround is to read the files yourself, but this doesn&amp;rsquo;t
+handle standard input. (It also uses two argument &lt;a href="http://perldoc.perl.org/functions/open.html"&gt;open&lt;/a&gt;&lt;sup id="fnref:whybad"&gt;&lt;a class="footnote-ref" href="#fn:whybad" rel="footnote"&gt;3&lt;/a&gt;&lt;/sup&gt;!)
+You&amp;rsquo;ll need to handle standard input (and &lt;code&gt;-&lt;/code&gt; being used as a placeholder)
+specially.&lt;/p&gt;
+&lt;p&gt;Something like:&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="n"&gt;autodie&lt;/span&gt; &lt;span class="s"&gt;':io'&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+
+&lt;span class="nv"&gt;@ARGV&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;'-'&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="o"&gt;!&lt;/span&gt;&lt;span class="nv"&gt;@ARGV&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;foreach&lt;/span&gt; &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$arg&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;@ARGV&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$fh&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$arg&lt;/span&gt; &lt;span class="ow"&gt;eq&lt;/span&gt; &lt;span class="s"&gt;'-'&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="nv"&gt;$fh&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="o"&gt;\*&lt;/span&gt;&lt;span class="bp"&gt;STDIN&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+    &lt;span class="k"&gt;else&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="nb"&gt;open&lt;/span&gt; &lt;span class="nv"&gt;$fh&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;'&amp;lt;'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$arg&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+    &lt;span class="k"&gt;while&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt; &lt;span class="o"&gt;!&lt;/span&gt; &lt;span class="nb"&gt;eof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$fh&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="nv"&gt;$_&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="sr"&gt;&amp;lt;$fh&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="o"&gt;...&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Not quite as simple as &lt;code&gt;while (&amp;lt;&amp;gt;) { ... }&lt;/code&gt;, huh? :(&lt;/p&gt;
+&lt;div class="footnote"&gt;
+&lt;hr /&gt;
+&lt;ol&gt;
+&lt;li id="fn:eflag"&gt;
+&lt;p&gt;If a command fails, abort the script rather than chugging onwards.&amp;nbsp;&lt;a class="footnote-backref" href="#fnref:eflag" rev="footnote" title="Jump back to footnote 1 in the text"&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li id="fn:pipeflag"&gt;
+&lt;p&gt;In a pipeline, if an earlier part of the pipe fails, don&amp;rsquo;t allow the non-zero exit code to be masked by commands later in the pipe that exit successfully. Critical!&amp;nbsp;&lt;a class="footnote-backref" href="#fnref:pipeflag" rev="footnote" title="Jump back to footnote 2 in the text"&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li id="fn:whybad"&gt;
+&lt;p&gt;With two argument open, special characters such as &lt;code&gt;&amp;gt;&lt;/code&gt; and &lt;code&gt;|&lt;/code&gt; will be interpreted respectively as &amp;lsquo;open the file for writing&amp;rsquo; and &amp;lsquo;open a shell with the following command for input/output&amp;rsquo;. Leading whitespace is trimmed, too. This causes subtle bugs and/or security flaws in your script.&amp;nbsp;&lt;a class="footnote-backref" href="#fnref:whybad" rev="footnote" title="Jump back to footnote 3 in the text"&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/div&gt;</summary><category term="perl"></category><category term="pbp"></category></entry><entry><title>Much ado about unless</title><link href="http://richardharr.is/much-ado-about-unless.html" rel="alternate"></link><updated>2013-09-01T20:00:00+01:00</updated><author><name>Richard Harris</name></author><id>tag:richardharr.is,2013-09-01:much-ado-about-unless.html</id><summary type="html">&lt;p&gt;&lt;code&gt;unless&lt;/code&gt; is a language construct that I think sums up Perl in many ways. In the right
+hands, such syntactic choices can bring the code closer to the problem domain, aid
+readability, and allow great freedom of expression. In the wrong hands, it can produce
+a horrible mess which nobody can understand.&lt;/p&gt;
+&lt;p&gt;I have some simple heuristics for applying &lt;code&gt;unless&lt;/code&gt; that have worked well for me and people
+who read my code:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Use unless when the condition is negative.&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;You can avoid a double-negative by using &lt;code&gt;unless&lt;/code&gt; with negatively-named variables or
+functions. For example:&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="n"&gt;lock&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="k"&gt;unless&lt;/span&gt; &lt;span class="nv"&gt;$skip_locking&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&amp;hellip;compared with&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="n"&gt;lock&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="o"&gt;!&lt;/span&gt;&lt;span class="nv"&gt;$skip_locking&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Use unless to imply success.&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;Unlike the neutral &lt;code&gt;if&lt;/code&gt;, &lt;code&gt;unless&lt;/code&gt; implies that the block is likely to be executed
+(i.e. the condition is unlikely to occur, just as it does in English).
+It also implies that we &lt;em&gt;want&lt;/em&gt; the block to execute.&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="k"&gt;unless&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$going_to_throw_up&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="n"&gt;drink_shot&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;  &lt;span class="c1"&gt;# implication: throwing up is unlikely. Cheers!&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;vs.&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt; &lt;span class="o"&gt;!&lt;/span&gt; &lt;span class="nv"&gt;$going_to_throw_up&lt;/span&gt; &lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="n"&gt;drink_shot&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;   &lt;span class="c1"&gt;# implication: uhm, I'm feeling a little woozy...&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Even the notorious double negative can work in this context.&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="k"&gt;unless&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt; &lt;span class="o"&gt;!&lt;/span&gt; &lt;span class="n"&gt;file_readable&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$fh&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="c1"&gt;# do some shiz with $fh&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Contrast with the more neutral &lt;span style="white-space: nowrap"&gt;&lt;code&gt;if ( file_readable($fh) )&lt;/code&gt;&lt;/span&gt;.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Don&amp;rsquo;t use unless for complex expressions.&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;If the programmer needs to apply DeMorgan&amp;rsquo;s law to understand the conditional,
+use &lt;code&gt;if&lt;/code&gt; and apply it immediately. For instance, which of these two are more
+readable?&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="k"&gt;unless&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt; &lt;span class="nv"&gt;$have_work&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class="o"&gt;!&lt;/span&gt;&lt;span class="nv"&gt;$sunday&lt;/span&gt; &lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="n"&gt;sleep_in&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+
+&lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt; &lt;span class="o"&gt;!&lt;/span&gt;&lt;span class="nv"&gt;$have_work&lt;/span&gt; &lt;span class="o"&gt;||&lt;/span&gt; &lt;span class="nv"&gt;$sunday&lt;/span&gt; &lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="n"&gt;sleep_in&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Most likely, you had to mentally transform the &lt;code&gt;unless&lt;/code&gt; to an &lt;code&gt;if&lt;/code&gt; to understand
+it; in these cases, using &lt;code&gt;if&lt;/code&gt; is better.&lt;/p&gt;
+&lt;p&gt;Of course, even if you use &lt;code&gt;unless&lt;/code&gt; because a conditional is simple, it could get
+more complicated later. Refactoring the conditional into its own function or method
+protects you from this.&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="k"&gt;unless&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt; &lt;span class="nv"&gt;$query&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;param&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;'queue'&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+      &lt;span class="ow"&gt;or&lt;/span&gt; &lt;span class="nv"&gt;$query&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;param&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;'language'&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+      &lt;span class="ow"&gt;or&lt;/span&gt; &lt;span class="nv"&gt;$query&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;param&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;'domain'&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="c1"&gt;# Provide default status filter&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+
+&lt;span class="k"&gt;unless&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$query&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;has_status_filter&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="c1"&gt;# Provide default status filter&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Don&amp;rsquo;t use unless if you have an &lt;code&gt;elsif&lt;/code&gt; or &lt;code&gt;else&lt;/code&gt; block.&lt;/strong&gt;&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="k"&gt;unless&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$foo&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="o"&gt;...&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;span class="k"&gt;else&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="o"&gt;...&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Yep.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;</summary><category term="perl"></category><category term="pbp"></category></entry><entry><title>Three revelations about DateTime (and why simpler is sometimes better)</title><link href="http://richardharr.is/three-revelations-about-datetime-and-why-simpler-is-sometimes-better.html" rel="alternate"></link><updated>2013-04-02T11:00:00+01:00</updated><author><name>Richard Harris</name></author><id>tag:richardharr.is,2013-04-02:three-revelations-about-datetime-and-why-simpler-is-sometimes-better.html</id><summary type="html">&lt;p&gt;&lt;a href="https://metacpan.org/module/DateTime"&gt;DateTime&lt;/a&gt; is an amazing module, and our go-to module at work for any date
+manipulation. It&amp;rsquo;s stable, it handles all the edge cases and it has a nice API.
+Even so, there are some cases where going outside the DateTime ecosystem makes
+your life a lot simpler, and I&amp;rsquo;m going to illustrate one of those times.&lt;/p&gt;
+&lt;h2&gt;The Gap&lt;/h2&gt;
+&lt;p&gt;So I was making a simple tool to go through log files which were prefixed
+with the current time, like so:&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;[2013-04-01 21:03:01 BST] Your mum has exploded!
+[2013-04-01 21:03:02 BST] (CRITICAL) Someone's mum has exploded, aborting
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&amp;hellip;and identify gaps in the log bigger than &lt;em&gt;n&lt;/em&gt; seconds by adding some text:&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;[2013-04-01 21:03:01 BST] Trying to order pizza using bitcoins
+[2013-04-01 21:03:05 BST] Waiting for currency to stabilise...
+--- GAP: 12 years and 96 days ---
+[2025-07-03 11:55:21 BST] Timed out
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Here&amp;rsquo;s my initial take using DateTime (&lt;a href="https://gist.github.com/richardjharris/5288171"&gt;full version&lt;/a&gt;):&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$span&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nn"&gt;DateTime::Format::Human::&lt;/span&gt;&lt;span class="n"&gt;Duration&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="k"&gt;new&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$dtparse&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nn"&gt;DateTime::Format::&lt;/span&gt;&lt;span class="n"&gt;Strptime&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="k"&gt;new&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;...&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+
+&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$prev&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;while&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$line&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="nv"&gt;$line&lt;/span&gt; &lt;span class="o"&gt;=~&lt;/span&gt;&lt;span class="sr"&gt; /^\[ (.*?) \]/x&lt;/span&gt; &lt;span class="ow"&gt;or&lt;/span&gt; &lt;span class="k"&gt;next&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$ts&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nv"&gt;$dtparse&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;parse_datetime&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$1&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$ts&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$prev&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+            &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$delta&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nv"&gt;$ts&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="nv"&gt;$prev&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+            &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$delta&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;in_units&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;'seconds'&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;=&lt;/span&gt; &lt;span class="nv"&gt;$min_gap&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+                &lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="s"&gt;"--- GAP: "&lt;/span&gt; &lt;span class="o"&gt;.&lt;/span&gt; &lt;span class="nv"&gt;$span&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;format_duration_between&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$prev&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$ts&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;.&lt;/span&gt; &lt;span class="s"&gt;" ---\n"&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+            &lt;span class="p"&gt;}&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+        &lt;span class="nv"&gt;$prev&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nv"&gt;$ts&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+    &lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="nv"&gt;$line&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Nifty huh? But this didn&amp;rsquo;t actually do anything. The output of &lt;code&gt;parse_datetime&lt;/code&gt; was
+undefined! After adding some error handling, I discovered &lt;strong&gt;Relevation #1: &lt;abbr title="British Summer Time (or apparently Bangladesh Summer Time)"&gt;BST&lt;/abbr&gt; is ambiguous.&lt;/strong&gt;
+&lt;a href="https://metacpan.org/module/DateTime::Format::Strptime"&gt;DateTime::Format::Strptime&lt;/a&gt; refuses to parse BST because it &lt;em&gt;might&lt;/em&gt; be an abbreviation
+for &amp;ldquo;Bangladesh Summer Time&amp;rdquo; as well as &amp;ldquo;British Summer Time&amp;rdquo;, despite me providing an
+appropriate locale and time zone in the constructor. (A similar issue appears with &lt;abbr title="Eastern Standard Time in the United States (but also Australian Eastern Standard Time)"&gt;EST&lt;/abbr&gt;.)&lt;/p&gt;
+&lt;p&gt;Okay, so I added a quick &lt;code&gt;s/ BST$/+0100/&lt;/code&gt;, &lt;code&gt;s/ GMT$/+0000/&lt;/code&gt; and changed &lt;code&gt;%Z&lt;/code&gt; to &lt;code&gt;%z&lt;/code&gt; in the
+format string and it appeared to work!&lt;sup id="fnref:tz"&gt;&lt;a class="footnote-ref" href="#fn:tz" rel="footnote"&gt;1&lt;/a&gt;&lt;/sup&gt; But due to previous work with DateTime, I had a
+suspicion that it wouldn&amp;rsquo;t recognise gaps of 60 seconds or more.&lt;/p&gt;
+&lt;p&gt;My suspicion was confirmed! Up to 59 seconds, worked fine. 60? No deal. How come? The reason
+is &lt;strong&gt;Relevation #2: minutes cannot be converted into seconds.&lt;/strong&gt; DateTime is a perfectionist
+to a fault, and because of &lt;a href="https://en.wikipedia.org/wiki/leap_seconds"&gt;leap seconds&lt;/a&gt;, a minute may contain 60 or 61 seconds. Because
+this is ambiguous, if you ask for seconds, &lt;code&gt;in_units('seconds')&lt;/code&gt; &lt;em&gt;only&lt;/em&gt; returns the seconds
+part of the duration!&lt;/p&gt;
+&lt;p&gt;Dave Rolsky (the primary author of DateTime!) suggested the &lt;code&gt;subtract_datetime_absolute&lt;/code&gt;
+method as a solution to this problem; this returns a duration object that only includes
+seconds and nanoseconds:&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$delta&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nv"&gt;$ts&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;subtract_datetime_absolute&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$prev&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$delta&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;in_units&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;'seconds'&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;=&lt;/span&gt; &lt;span class="nv"&gt;$min_gap&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt; &lt;span class="o"&gt;...&lt;/span&gt; &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Finally, it was working &amp;hellip; sort of. Processing a 320k line log file took almost four
+minutes! Profiling it showed that most of the time was spent in:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;DateTime::TimeZone::_spans_binary_search&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;Params::Validate::_validate&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;Relevation #3: Time zone calculations are very slow.&lt;/strong&gt;&lt;sup id="fnref:version"&gt;&lt;a class="footnote-ref" href="#fn:version" rel="footnote"&gt;2&lt;/a&gt;&lt;/sup&gt; Since I&amp;rsquo;m not so bothered
+about time zones, can I speed this up?&lt;/p&gt;
+&lt;p&gt;Using &lt;code&gt;set_time_zone&lt;/code&gt; to set &lt;abbr title="Coordinated Universal Time, or +0000."&gt;UTC&lt;/abbr&gt; or floating time zones did not bear fruit; presumably,
+we still perform a time zone conversion for each line. Stripping the timezone and adding an hour
+manually for BST made it take even longer!&lt;/p&gt;
+&lt;p&gt;Curious, I decided to try some other modules, &lt;a href="https://metacpan.org/module/Date::Parse"&gt;Date::Parse&lt;/a&gt; and &lt;a href="https://metacpan.org/module/Time::Duration"&gt;Time::Duration&lt;/a&gt;.
+(I also tried &lt;a href="https://metacpan.org/module/Time::Piece"&gt;Time::Piece&lt;/a&gt;, but its implementation of &lt;code&gt;strptime&lt;/code&gt; complained that
+BST was &amp;ldquo;trailing garbage&amp;rdquo;, even though I specified &lt;code&gt;%Z&lt;/code&gt;).&lt;/p&gt;
+&lt;h2&gt;Take Two&lt;/h2&gt;
+&lt;p&gt;Aside from being smaller, this version processes 320k lines in 18 seconds:&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="nv"&gt;$line&lt;/span&gt; &lt;span class="o"&gt;=~&lt;/span&gt;&lt;span class="sr"&gt; /^\[ ([^\[]+) \]/x&lt;/span&gt; &lt;span class="ow"&gt;or&lt;/span&gt; &lt;span class="k"&gt;next&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$ts&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;str2time&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$1&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;defined&lt;/span&gt; &lt;span class="nv"&gt;$ts&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;defined&lt;/span&gt; &lt;span class="nv"&gt;$prev&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$delta&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nv"&gt;$ts&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="nv"&gt;$prev&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$delta&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;=&lt;/span&gt; &lt;span class="nv"&gt;$min_gap&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+            &lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="s"&gt;"--- GAP: "&lt;/span&gt; &lt;span class="o"&gt;.&lt;/span&gt; &lt;span class="n"&gt;duration&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$delta&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;.&lt;/span&gt; &lt;span class="s"&gt;" ---\n"&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+    &lt;span class="nv"&gt;$prev&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nv"&gt;$ts&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="nv"&gt;$line&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;(&lt;a href="https://gist.github.com/richardjharris/5288203"&gt;full version&lt;/a&gt;)&lt;/p&gt;
+&lt;h2&gt;The Final Cut&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;str2time&lt;/code&gt; is a heuristic parser; replacing it with a regex brings the time down
+to 3.2 seconds:&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="k"&gt;sub &lt;/span&gt;&lt;span class="nf"&gt;parse_date&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$line&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;shift&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="nv"&gt;$line&lt;/span&gt; &lt;span class="o"&gt;=~&lt;/span&gt;&lt;span class="sr"&gt; /^\[(\d\d\d\d)-(\d\d)-(\d\d) (\d\d):(\d\d):(\d\d) (\w+)/&lt;/span&gt; &lt;span class="ow"&gt;or&lt;/span&gt; &lt;span class="k"&gt;return&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;mktime&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$6&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$5&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$4&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$3&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$2&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$1&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="mi"&gt;1900&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$7&lt;/span&gt; &lt;span class="ow"&gt;eq&lt;/span&gt; &lt;span class="s"&gt;'BST'&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Ugly, but fast.&lt;/p&gt;
+&lt;h2&gt;Conclusion&lt;/h2&gt;
+&lt;p&gt;Performance is always at odds with flexibility. &lt;a href="https://metacpan.org/module/DateTime"&gt;DateTime&lt;/a&gt; tries extremely hard
+to account for daylight savings, timezones and leap seconds; this level of rigorous
+precision may not be appropriate for your application. On the other hand, most
+applications do not care about the performance of date calculations.&lt;/p&gt;
+&lt;p&gt;Dates and times can get very, very complex. Read the docs of your chosen module
+and be aware of edge cases (like &lt;code&gt;in_units&lt;/code&gt; refusing to convert from minutes to
+seconds) before they bite you.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;h2&gt;Bonus!&lt;/h2&gt;
+&lt;p&gt;Let&amp;rsquo;s see how well these versions cope with the &lt;a href="https://en.wikipedia.org/wiki/Year_2038_problem"&gt;Year 2038 problem&lt;/a&gt;!&lt;/p&gt;
+&lt;p&gt;Input:&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;[2013-04-01 21:03:01 BST] Taking a trip to the year 3000...
+[2013-04-01 21:03:01 BST] (not much has changed but they live underwater)
+[3000-01-01 00:00:00 BST] Your great, great great grand daughter is: pretty fine
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;DateTime performs impeccably, although it does take about 4 seconds, because it has
+to do time zone calculations spanning 1,000 years.&lt;sup id="fnref:span"&gt;&lt;a class="footnote-ref" href="#fn:span" rel="footnote"&gt;3&lt;/a&gt;&lt;/sup&gt;&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;[2013-04-01 21:03:01 BST] Taking a trip to the year 3000...
+[2013-04-01 21:03:01 BST] (not much has changed but they live underwater)
+--- GAP: 986 years, 8 months, 4 weeks, 2 days, 1 hour, 56 minutes, and 59 seconds ---
+[3000-01-01 00:00:00 BST] Your great, great great grand daughter is: pretty fine
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Date::Parse is not having fun, because Perl &amp;lt; 5.12.0 has 32-bit times: &lt;sup id="fnref:perl512"&gt;&lt;a class="footnote-ref" href="#fn:perl512" rel="footnote"&gt;4&lt;/a&gt;&lt;/sup&gt;&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;Day too small - -317761 &amp;gt; -24856
+Sec too small - -317761 &amp;lt; 74752
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Ugly regex version:&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;[2013-04-01 21:03:01 BST] Taking a trip to the year 3000...
+[2013-04-01 21:03:01 BST] (not much has changed but they live underwater)
+--- GAP: 987 years and 149 days ---
+[3000-01-01 00:00:00 BST] Your great, great great grand daughter is: pretty fine
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;strong&gt;Ugly regex wins!&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;(Sadly, that&amp;rsquo;s been the case more often than I&amp;rsquo;d like to admit&amp;hellip;)&lt;/p&gt;
+&lt;div class="footnote"&gt;
+&lt;hr /&gt;
+&lt;ol&gt;
+&lt;li id="fn:tz"&gt;
+&lt;p&gt;As I live in the United Kingdom, these logs are only going to be in either BST or &lt;abbr title="Greenwich Mean Time (used in Commonwealth countries to refer to UTC)"&gt;GMT&lt;/abbr&gt; depending on the time of year.&amp;nbsp;&lt;a class="footnote-backref" href="#fnref:tz" rev="footnote" title="Jump back to footnote 1 in the text"&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li id="fn:version"&gt;
+&lt;p&gt;CentOS 5 provides DateTime version 0.41. I tested version 1.01, but it did not show a notable speed improvement.&amp;nbsp;&lt;a class="footnote-backref" href="#fnref:version" rev="footnote" title="Jump back to footnote 2 in the text"&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li id="fn:span"&gt;
+&lt;p&gt;This is explicitly mentioned in the perldoc; the workaround is to use UTC/floating.&amp;nbsp;&lt;a class="footnote-backref" href="#fnref:span" rev="footnote" title="Jump back to footnote 3 in the text"&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li id="fn:perl512"&gt;
+&lt;p&gt;It works great on newer Perls, but CentOS probably won&amp;rsquo;t have upgraded to 5.12 by 2038 :)&amp;nbsp;&lt;a class="footnote-backref" href="#fnref:perl512" rev="footnote" title="Jump back to footnote 4 in the text"&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/div&gt;</summary><category term="perl"></category><category term="datetime"></category></entry><entry><title>Exposing git committer habits with ANSI::Heatmap</title><link href="http://richardharr.is/exposing-git-committer-habits-with-ansiheatmap.html" rel="alternate"></link><updated>2013-03-23T22:02:00+00:00</updated><author><name>Richard Harris</name></author><id>tag:richardharr.is,2013-03-23:exposing-git-committer-habits-with-ansiheatmap.html</id><summary type="html">&lt;p&gt;I&amp;rsquo;ve released a new module to CPAN, &lt;a href="https://metacpan.org/module/ANSI::Heatmap"&gt;ANSI::Heatmap&lt;/a&gt;. It makes pretty heatmaps for
+your console application, like this:&lt;/p&gt;
+&lt;p style="text-align: center; font-style: italic"&gt;&lt;img alt="Sample heatmap output" src="http://richardharr.is/static/images/heatmap.png" title="Sample heatmap output" /&gt;&lt;br /&gt;
+Names changed to protect the innocent&lt;/p&gt;
+&lt;p&gt;The x-axis is hour (0-23) and the y-axis is day of week (Mon-Sun) of the &lt;em&gt;local&lt;/em&gt;
+git commit time, correcting for timezone.&lt;/p&gt;
+&lt;p&gt;I wrote a quick Perl script to call &lt;code&gt;git log&lt;/code&gt; and process the dates:&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="c1"&gt;#!/usr/bin/perl&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="n"&gt;strict&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="n"&gt;warnings&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="nn"&gt;ANSI::&lt;/span&gt;&lt;span class="n"&gt;Heatmap&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+
+&lt;span class="nv"&gt;@ARGV&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="mi"&gt;2&lt;/span&gt; &lt;span class="ow"&gt;or&lt;/span&gt; &lt;span class="nb"&gt;die&lt;/span&gt; &lt;span class="s"&gt;"usage: $0 repo author"&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$opt_repo&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$opt_author&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nv"&gt;@ARGV&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$i&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;%day2idx&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;map&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt; &lt;span class="nv"&gt;$_&lt;/span&gt; &lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="nv"&gt;$i&lt;/span&gt;&lt;span class="o"&gt;++&lt;/span&gt; &lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="sx"&gt;qw(Mon Tue Wed Thu Fri Sat Sun)&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$map&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nn"&gt;ANSI::&lt;/span&gt;&lt;span class="n"&gt;Heatmap&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="k"&gt;new&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;min_x&lt;/span&gt; &lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;max_x&lt;/span&gt; &lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;23&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;min_y&lt;/span&gt; &lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;max_y&lt;/span&gt; &lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;6&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;half&lt;/span&gt; &lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+
+&lt;span class="nb"&gt;chdir&lt;/span&gt; &lt;span class="nv"&gt;$opt_repo&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="nb"&gt;open&lt;/span&gt; &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$log&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;'-|'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;'git'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;'log'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;'--no-merges'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;'--remove-empty'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="s"&gt;'--format=%cD'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;'--author'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$opt_author&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;span class="k"&gt;while&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="sr"&gt;&amp;lt;$log&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="sr"&gt;/\A(\w+), \d+ \w+ \d+ (\d+):\d+:\d+ [+-]\d+\Z/&lt;/span&gt; &lt;span class="ow"&gt;or&lt;/span&gt; &lt;span class="nb"&gt;die&lt;/span&gt; &lt;span class="s"&gt;"invalid line '$_'"&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$day&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$hour&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$2&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+    &lt;span class="nv"&gt;$day&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nv"&gt;$day2idx&lt;/span&gt;&lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="nv"&gt;$day&lt;/span&gt;&lt;span class="p"&gt;};&lt;/span&gt; &lt;span class="nb"&gt;defined&lt;/span&gt; &lt;span class="nv"&gt;$day&lt;/span&gt; &lt;span class="ow"&gt;or&lt;/span&gt; &lt;span class="nb"&gt;die&lt;/span&gt; &lt;span class="s"&gt;"Invalid day"&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="nv"&gt;$map&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;inc&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$hour&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$day&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+
+&lt;span class="nb"&gt;binmode&lt;/span&gt; &lt;span class="bp"&gt;STDOUT&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;':utf8'&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="nv"&gt;$map&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;For a fancier output, you need to split the heatmaps by line and stack them
+together horizontally; &lt;a href="https://metacpan.org/source/RJH/ANSI-Heatmap-0.2/examples/git.pl"&gt;here is the source&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;I&amp;rsquo;d love to see what other people do with this code!&lt;/p&gt;</summary><category term="perl"></category><category term="git"></category><category term="heatmap"></category><category term="cpan"></category></entry></feed>

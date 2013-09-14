@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+        <title>Much ado about unless</title>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" href="./theme/css/main.css" type="text/css" />
+                <link href="http://richardharr.is/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="richardharr.is Atom Feed" />
+                
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+        <script src="./theme/js/jquery.simpletip-1.3.1.min.js" type="text/javascript" /></script>
+        <script src="./theme/js/unicode-tooltips.js" type="text/javascript" /></script>
+
+        <!--[if IE]>
+                <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+
+        <!--[if lte IE 7]>
+                <link rel="stylesheet" type="text/css" media="all" href="./css/ie.css"/>
+                <script src="./js/IE8.js" type="text/javascript"></script><![endif]-->
+
+        <!--[if lt IE 7]>
+                <link rel="stylesheet" type="text/css" media="all" href="./css/ie6.css"/><![endif]-->
+
+</head>
+
+<body id="index" class="home">
+        <header id="banner" class="body">
+                <h1><a href="./">richardharr.is </a></h1>
+                <!--<nav><ul>
+                                                                                                    <li ><a href="./category/japanese.html">Japanese</a></li>
+                                    <li class="active"><a href="./category/perl.html">Perl</a></li>
+                                    <li ><a href="./category/unicode.html">Unicode</a></li>
+                                </ul></nav>-->
+        </header><!-- /#banner -->
+        <section id="content" class="body">
+  <article>
+    <header>
+      <h1 class="entry-title">
+        <a href="./much-ado-about-unless.html" rel="bookmark"
+           title="Permalink to Much ado about unless">Much ado about unless</a></h1>
+      <a href="http://twitter.com/share" class="twitter-share-button" data-count="horizontal" data-via="_rjh">Tweet</a><script type="text/javascript" src="http://platform.twitter.com/widgets.js"></script>
+    </header>
+
+    <div class="entry-content">
+      <footer class="post-info">
+        <abbr class="published" title="2013-09-01T20:00:00">
+                01 Sep 2013
+        </abbr>
+
+                <address class="vcard author">
+                By <a class="url fn" href="./author/richard-harris.html">Richard Harris</a>
+        </address>
+        <p>In <a href="./category/perl.html">Perl</a>. </p>
+<p>tags: <a href="./tag/perl.html">perl</a>, <a href="./tag/pbp.html">pbp</a></p>
+</footer><!-- /.post-info -->      <p><code>unless</code> is a language construct that I think sums up Perl in many ways. In the right
+hands, such syntactic choices can bring the code closer to the problem domain, aid
+readability, and allow great freedom of expression. In the wrong hands, it can produce
+a horrible mess which nobody can understand.</p>
+<p>I have some simple heuristics for applying <code>unless</code> that have worked well for me and people
+who read my code:</p>
+<ol>
+<li>
+<p><strong>Use unless when the condition is negative.</strong></p>
+<p>You can avoid a double-negative by using <code>unless</code> with negatively-named variables or
+functions. For example:</p>
+<div class="codehilite"><pre><span class="n">lock</span><span class="p">()</span> <span class="k">unless</span> <span class="nv">$skip_locking</span><span class="p">;</span>
+</pre></div>
+
+
+<p>&hellip;compared with</p>
+<div class="codehilite"><pre><span class="n">lock</span><span class="p">()</span> <span class="k">if</span> <span class="o">!</span><span class="nv">$skip_locking</span><span class="p">;</span>
+</pre></div>
+
+
+</li>
+<li>
+<p><strong>Use unless to imply success.</strong></p>
+<p>Unlike the neutral <code>if</code>, <code>unless</code> implies that the block is likely to be executed
+(i.e. the condition is unlikely to occur, just as it does in English).
+It also implies that we <em>want</em> the block to execute.</p>
+<div class="codehilite"><pre><span class="k">unless</span> <span class="p">(</span><span class="nv">$going_to_throw_up</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">drink_shot</span><span class="p">();</span>  <span class="c1"># implication: throwing up is unlikely. Cheers!</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>vs.</p>
+<div class="codehilite"><pre><span class="k">if</span> <span class="p">(</span> <span class="o">!</span> <span class="nv">$going_to_throw_up</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="n">drink_shot</span><span class="p">();</span>   <span class="c1"># implication: uhm, I'm feeling a little woozy...</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Even the notorious double negative can work in this context.</p>
+<div class="codehilite"><pre><span class="k">unless</span> <span class="p">(</span> <span class="o">!</span> <span class="n">file_readable</span><span class="p">(</span><span class="nv">$fh</span><span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="c1"># do some shiz with $fh</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Contrast with the more neutral <span style="white-space: nowrap"><code>if ( file_readable($fh) )</code></span>.</p>
+</li>
+<li>
+<p><strong>Don&rsquo;t use unless for complex expressions.</strong></p>
+<p>If the programmer needs to apply DeMorgan&rsquo;s law to understand the conditional,
+use <code>if</code> and apply it immediately. For instance, which of these two are more
+readable?</p>
+<div class="codehilite"><pre><span class="k">unless</span> <span class="p">(</span> <span class="nv">$have_work</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="nv">$sunday</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="n">sleep_in</span><span class="p">();</span>
+<span class="p">}</span>
+
+<span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="nv">$have_work</span> <span class="o">||</span> <span class="nv">$sunday</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="n">sleep_in</span><span class="p">();</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Most likely, you had to mentally transform the <code>unless</code> to an <code>if</code> to understand
+it; in these cases, using <code>if</code> is better.</p>
+<p>Of course, even if you use <code>unless</code> because a conditional is simple, it could get
+more complicated later. Refactoring the conditional into its own function or method
+protects you from this.</p>
+<div class="codehilite"><pre><span class="k">unless</span> <span class="p">(</span> <span class="nv">$query</span><span class="o">-&gt;</span><span class="n">param</span><span class="p">(</span><span class="s">'queue'</span><span class="p">)</span>
+      <span class="ow">or</span> <span class="nv">$query</span><span class="o">-&gt;</span><span class="n">param</span><span class="p">(</span><span class="s">'language'</span><span class="p">)</span>
+      <span class="ow">or</span> <span class="nv">$query</span><span class="o">-&gt;</span><span class="n">param</span><span class="p">(</span><span class="s">'domain'</span><span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="c1"># Provide default status filter</span>
+<span class="p">}</span>
+
+<span class="k">unless</span> <span class="p">(</span><span class="nv">$query</span><span class="o">-&gt;</span><span class="n">has_status_filter</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1"># Provide default status filter</span>
+<span class="p">}</span>
+</pre></div>
+
+
+</li>
+<li>
+<p><strong>Don&rsquo;t use unless if you have an <code>elsif</code> or <code>else</code> block.</strong></p>
+<div class="codehilite"><pre><span class="k">unless</span> <span class="p">(</span><span class="nv">$foo</span><span class="p">)</span> <span class="p">{</span>
+    <span class="o">...</span>
+<span class="p">}</span>
+<span class="k">else</span> <span class="p">{</span>
+    <span class="o">...</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Yep.</p>
+</li>
+</ol>
+    </div><!-- /.entry-content -->
+        <div class="comments">
+      <h2>Comments !</h2>
+      <div id="disqus_thread"></div>
+      <script type="text/javascript">
+        var disqus_identifier = "much-ado-about-unless.html";
+        (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://richardharris.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+      </script>
+    </div>
+    
+  </article>
+</section>
+        <section id="extras" class="body">
+                        <div class="social">
+                        <h2>social</h2>
+                        <ul>
+                            <li><a href="http://richardharr.is/feeds/all.atom.xml" type="application/atom+xml" rel="alternate">atom feed</a></li>
+                            
+                                                    <li><a href="https://www.fitocracy.com/profile/rjh/">Fitocracy</a></li>
+                                                    <li><a href="https://github.com/richardjharris/">GitHub</a></li>
+                                                    <li><a href="https://stackoverflow.com/users/74496/rjh">StackOverflow</a></li>
+                                                    <li><a href="https://www.flickr.com/photos/richardjharris/">Flickr</a></li>
+                                                    <li><a href="https://www.linkedin.com/profile/view?id=117798931">LinkedIn</a></li>
+                                                    <li><a href="https://twitter.com/_rjh">@_rjh</a></li>
+                                                </ul>
+                </div><!-- /.social -->
+                                <div class="blogroll">
+                        <h2>blogroll</h2>
+                        <ul>
+                                                    <li><a href="http://news.netcraft.com">Netcraft News</a></li>
+                                                    <li><a href="http://blog.peter-r.co.uk">Peter R's Blog</a></li>
+                                                    <li><a href="http://incoherency.co.uk/">incoherency.co.uk</a></li>
+                                                    <li><a href="http://ben.dartoxia.com/">Dartoxia.com</a></li>
+                                                    <li><a href="http://ferozsalam.com/">Feroz Salam</a></li>
+                                                    <li><a href="http://www.adanscotney.com/">Adan's Food Blog</a></li>
+                                                    <li><a href="http://jon.isbell.net/">Jon Isbell</a></li>
+                                                    <li><a href="http://jes.xxx/blog/">Jes's Blog</a></li>
+                                                </ul>
+                        <ul style="clear: left">
+                        <li href="http://stackoverflow.com/users/74496/rjh">
+                          <img src="http://stackoverflow.com/users/flair/74496.png" width="208" height="58" alt="profile for rjh at Stack Overflow, Q&amp;A for professional and enthusiast programmers" title="profile for rjh at Stack Overflow, Q&amp;A for professional and enthusiast programmers">
+                        </li>
+                        </ul>
+                    </div>
+                </div><!-- /.blogroll -->
+                </section><!-- /#extras -->
+
+        <footer id="contentinfo" class="body">
+           <p>Powered by <a href="http://getpelican.com/">Pelican</a> <b>&middot;</b> Theme by <a href="http://coding.smashingmagazine.com/2009/08/04/designing-a-html-5-layout-from-scratch/">Smashing Magazine</a></p>
+        </footer>
+
+    <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-38981161-1']);
+    _gaq.push(['_trackPageview']);
+    (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+    </script>
+<script type="text/javascript">
+    var disqus_shortname = 'richardharris';
+    (function () {
+        var s = document.createElement('script'); s.async = true;
+        s.type = 'text/javascript';
+        s.src = 'http://' + disqus_shortname + '.disqus.com/count.js';
+        (document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
+    }());
+</script>
+</body>
+</html>

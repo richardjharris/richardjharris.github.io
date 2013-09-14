@@ -1,0 +1,1116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"><title>richardharr.is</title><link href="http://richardharr.is/" rel="alternate"></link><link href="http://richardharr.is/feeds/all-en.atom.xml" rel="self"></link><id>http://richardharr.is/</id><updated>2013-09-13T12:00:00+01:00</updated><entry><title>Viewing English and Japanese subtitles at the same time</title><link href="http://richardharr.is/viewing-english-and-japanese-subtitles-at-the-same-time.html" rel="alternate"></link><updated>2013-09-13T12:00:00+01:00</updated><author><name>Richard Harris</name></author><id>tag:richardharr.is,2013-09-13:viewing-english-and-japanese-subtitles-at-the-same-time.html</id><summary type="html">&lt;p&gt;On Linux I don&amp;rsquo;t know of any good media players that&amp;rsquo;ll show multiple
+subtitles together, which poses a problem if you want to watch with subs
+in both the language you&amp;rsquo;re learning and your native tongue.&lt;/p&gt;
+&lt;p&gt;Fortunately the &lt;i&gt;un&lt;/i&gt;fortunately-named ASS format supports displaying
+more than one sub at a time, and we can use that to get a result like this:&lt;/p&gt;
+&lt;p style="text-align: center"&gt;&lt;img alt="EN/JP subs together" src="http://richardharr.is/static/images/enjp-subs.jpg" /&gt;&lt;/p&gt;
+&lt;h2&gt;The method&lt;/h2&gt;
+&lt;p&gt;In my case, I had a bunch of Japanese subs in .srt format, and English
+subs in .ass format. The approach is simple: for each video,&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Create a new .ass layer called &amp;lsquo;Japanese&amp;rsquo; alongside default.&lt;/li&gt;
+&lt;li&gt;Change the layer alignments to put one at the top, one at the bottom.&lt;/li&gt;
+&lt;li&gt;Parse the .srt to extract subtitle lines and timings.&lt;/li&gt;
+&lt;li&gt;Generate equivalent lines in .ass format, and shove them on the end
+   of the existing file, using the new &amp;lsquo;Japanese&amp;rsquo; layer.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;.ass is a great format because subs don&amp;rsquo;t have to be ordered by time
+or anything. The only snafu is that there are two formats (&amp;lsquo;v4&amp;rsquo; and &amp;lsquo;v4+&amp;rsquo;)
+which have completely different alignment values (e.g. &amp;lsquo;2&amp;rsquo; might correspond
+to &amp;lsquo;bottom left&amp;rsquo; for one format, but &amp;lsquo;top centre&amp;rsquo; for another). So we also
+upgrade any v4 subs to v4+ for sanity reasons.&lt;/p&gt;
+&lt;h2&gt;The goods&lt;/h2&gt;
+&lt;p&gt;Here is an example set of subs for &amp;#26085;&amp;#26412;&amp;#20154;&amp;#12398;&amp;#30693;&amp;#12425;&amp;#12394;&amp;#12356;&amp;#26085;&amp;#26412;&amp;#35486; (&amp;ldquo;Japanese that
+Japanese people don&amp;rsquo;t know&amp;rdquo;):&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href="http://richardharr.is/static/downloads/Nihonjin_no_Shiranai_Nihongo_enjp.zip"&gt;Download ZIP&lt;/a&gt; (263 KB)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;The script&lt;/h2&gt;
+&lt;p&gt;Here is the script I wrote; it&amp;rsquo;s pretty specific to one set of subs, but I
+may expand it once I have tried a few other shows.&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="c1"&gt;#!/usr/bin/perl&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="n"&gt;strict&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="n"&gt;warnings&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="n"&gt;autodie&lt;/span&gt; &lt;span class="s"&gt;':io'&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="n"&gt;utf8&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="nb"&gt;open&lt;/span&gt; &lt;span class="s"&gt;':std'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;':encoding(UTF-8)'&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="nn"&gt;File::&lt;/span&gt;&lt;span class="n"&gt;Temp&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="nn"&gt;File::&lt;/span&gt;&lt;span class="n"&gt;Copy&lt;/span&gt; &lt;span class="sx"&gt;qw(move)&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+
+&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$JP_SPACE&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;'&amp;#12288;'&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$JP_STYLE&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;'Style:Japanese,Arial,24,&amp;amp;H00FFEEEE,&amp;amp;H000000FF,&amp;amp;H00000000,&amp;amp;H00000000,0,0,0,0,100,100,0,0,1,2,1,2,10,10,10,1\n'&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+
+&lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$episode&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="sx"&gt;qw(01 02 03 04 05 06 07 08 09 10 11)&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;'12 finale'&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$base&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;"Nihonjin no Shiranai Nihongo ep$episode (704x396 XviD)"&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="n"&gt;convert&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;"$base.ass"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;"$base.jp.srt"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;"enjp-$base.ass"&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+
+&lt;span class="k"&gt;sub &lt;/span&gt;&lt;span class="nf"&gt;convert&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$ass&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$srt&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$out&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nv"&gt;@_&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="nb"&gt;open&lt;/span&gt; &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$assfh&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;'&amp;lt;:utf8'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$ass&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="nb"&gt;open&lt;/span&gt; &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$srtfh&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;'&amp;lt;:utf8'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$srt&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$outfh&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nn"&gt;File::&lt;/span&gt;&lt;span class="n"&gt;Temp&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="k"&gt;new&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="nb"&gt;binmode&lt;/span&gt; &lt;span class="nv"&gt;$outfh&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;':utf8'&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+
+    &lt;span class="c1"&gt;# Read .ass file and add Japanese style&lt;/span&gt;
+    &lt;span class="k"&gt;while&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="sr"&gt;&amp;lt;$assfh&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="sr"&gt;/^Style:\s*Default/&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+            &lt;span class="c1"&gt;# Change alignment from middle-bottom to middle-top and adjust border&lt;/span&gt;
+            &lt;span class="sr"&gt;s/2,2,2/2,1,8/&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+        &lt;span class="c1"&gt;# Upgrade to v4+ for sanity reasons - alignment numbers different between v4 and v4+&lt;/span&gt;
+        &lt;span class="sr"&gt;s/v4\.00(?!\+)/v4.00+/i&lt;/span&gt; &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="sr"&gt;/^ScriptType:/i&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="sr"&gt;s/V4/V4+/i&lt;/span&gt; &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="sr"&gt;/\[V4 Styles\]/i&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="nv"&gt;$outfh&lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="nv"&gt;$_&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="sr"&gt;/^Style:\s*Default/&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+            &lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="nv"&gt;$outfh&lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="nv"&gt;$JP_STYLE&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+
+    &lt;span class="c1"&gt;# Now add Japanese lines&lt;/span&gt;
+    &lt;span class="k"&gt;while&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="sr"&gt;&amp;lt;$srtfh&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$num&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nv"&gt;$_&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="c1"&gt;# A byte-order mark? Get out with yez&lt;/span&gt;
+        &lt;span class="nv"&gt;$num&lt;/span&gt; &lt;span class="o"&gt;=~&lt;/span&gt; &lt;span class="sr"&gt;s/^\x{FEFF}//&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="nv"&gt;$num&lt;/span&gt; &lt;span class="o"&gt;=~&lt;/span&gt;&lt;span class="sr"&gt; /^\d+\r?\n$/&lt;/span&gt; &lt;span class="ow"&gt;or&lt;/span&gt; &lt;span class="nb"&gt;die&lt;/span&gt; &lt;span class="s"&gt;"can't parse '$_'"&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$timings&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="sr"&gt;&amp;lt;$srtfh&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="nv"&gt;$timings&lt;/span&gt; &lt;span class="o"&gt;=~&lt;/span&gt;&lt;span class="sr"&gt; /^(.*?) --&amp;gt; (.*?)\r?\n$/&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$start&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$end&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$2&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+        &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;@lines&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="k"&gt;while&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="sr"&gt;&amp;lt;$srtfh&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+            &lt;span class="sr"&gt;s/\r?\n//g&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+            &lt;span class="k"&gt;last&lt;/span&gt; &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="o"&gt;!&lt;/span&gt;&lt;span class="nv"&gt;$_&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+            &lt;span class="nb"&gt;push&lt;/span&gt; &lt;span class="nv"&gt;@lines&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$_&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+
+        &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$all&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;join&lt;/span&gt; &lt;span class="s"&gt;'\\n'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;@lines&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="nv"&gt;$all&lt;/span&gt; &lt;span class="o"&gt;=~&lt;/span&gt; &lt;span class="sr"&gt;s/$JP_SPACE+/$JP_SPACE/g&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+
+        &lt;span class="nb"&gt;printf&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="nv"&gt;$outfh&lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="s"&gt;"Dialogue: 0,%s,%s,Japanese,,0000,0000,0000,,%s\n"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="n"&gt;_time2ass&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$start&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;
+            &lt;span class="n"&gt;_time2ass&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$end&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;
+            &lt;span class="nv"&gt;$all&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+
+    &lt;span class="nb"&gt;close&lt;/span&gt; &lt;span class="nv"&gt;$outfh&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="n"&gt;move&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$outfh&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;filename&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$out&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+
+&lt;span class="k"&gt;sub &lt;/span&gt;&lt;span class="nf"&gt;_time2ass&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$t&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;shift&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="nv"&gt;$t&lt;/span&gt; &lt;span class="o"&gt;=~&lt;/span&gt;&lt;span class="sr"&gt; /^(\d+):(\d+):(\d+),(\d\d)\d*$/&lt;/span&gt; &lt;span class="ow"&gt;or&lt;/span&gt; &lt;span class="nb"&gt;die&lt;/span&gt; &lt;span class="s"&gt;"invalid time '$t'"&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$h&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nv"&gt;$m&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nv"&gt;$s&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nv"&gt;$ms&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$2&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$3&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$4&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+    &lt;span class="nv"&gt;$h&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="o"&gt;+&lt;/span&gt;&lt;span class="nv"&gt;$h&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="c1"&gt;# no leading zeros&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="nb"&gt;sprintf&lt;/span&gt; &lt;span class="s"&gt;'%d:%02d:%02d.%02d'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$h&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$m&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$s&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$ms&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h2&gt;Site note&lt;/h2&gt;
+&lt;p&gt;.sub/.idx files are very common; they&amp;rsquo;re a huge pain because the subtitles
+are stored as images and require OCR. The best bet there is probably to
+hard-code the subs onto the video, then layer the other set over them.&lt;/p&gt;</summary><category term="perl"></category></entry><entry><title>A fun gotcha with magic &lt;&gt;</title><link href="http://richardharr.is/a-fun-gotcha-with-magic.html" rel="alternate"></link><updated>2013-09-13T10:00:00+01:00</updated><author><name>Richard Harris</name></author><id>tag:richardharr.is,2013-09-13:a-fun-gotcha-with-magic.html</id><summary type="html">&lt;p&gt;Despite liberally sprinkling my shell scripts with &lt;code&gt;-e&lt;/code&gt;&lt;sup id="fnref:eflag"&gt;&lt;a class="footnote-ref" href="#fn:eflag" rel="footnote"&gt;1&lt;/a&gt;&lt;/sup&gt; and &lt;code&gt;-o pipefail&lt;/code&gt;&lt;sup id="fnref:pipeflag"&gt;&lt;a class="footnote-ref" href="#fn:pipeflag" rel="footnote"&gt;2&lt;/a&gt;&lt;/sup&gt;,
+and adding defense with &lt;code&gt;use autodie;&lt;/code&gt; in Perl scripts, there&amp;rsquo;s a still some logic in
+&lt;em&gt;Perl&amp;rsquo;s core&lt;/em&gt; that allows an error to slip by unnoticed.&lt;/p&gt;
+&lt;h2&gt;Problem&lt;/h2&gt;
+&lt;p&gt;Consider a typical Perl script with a read loop:&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="c1"&gt;#!/usr/bin/perl&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="n"&gt;strict&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="n"&gt;warnings&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="n"&gt;autodie&lt;/span&gt; &lt;span class="s"&gt;':io'&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+
+&lt;span class="k"&gt;while&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="nb"&gt;chomp&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$size&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$toppings&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;split&lt;/span&gt; &lt;span class="sr"&gt;/\t/&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$_&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Due to the magic &lt;code&gt;&amp;lt;&amp;gt;&lt;/code&gt;, the script can be called either as &lt;code&gt;order-pizza pizzalist&lt;/code&gt;
+(where &lt;code&gt;pizzalist&lt;/code&gt; is a file) or &lt;code&gt;order-pizza &amp;lt; pizzalist&lt;/code&gt; (via standard input).&lt;/p&gt;
+&lt;p&gt;The problem occurs when &lt;code&gt;pizzalist&lt;/code&gt; does &lt;em&gt;not exist&lt;/em&gt;: Perl will complain:&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;Can't open pizzalist: No such file or directory ...
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&amp;hellip;but the script will continue as if &lt;code&gt;&amp;lt;&amp;gt;&lt;/code&gt; returned &lt;code&gt;undef&lt;/code&gt; (exiting the loop)
+and terminate with zero exit status! Indicating success, despite the error.&lt;/p&gt;
+&lt;p&gt;This caused a problem for me when a file went missing and this script suddenly
+did nothing, but we didn&amp;rsquo;t pick up on it immediately because the script exited
+just fine!&lt;/p&gt;
+&lt;h2&gt;Solution&lt;/h2&gt;
+&lt;p&gt;This is actually documented in the &lt;a href="http://perldoc.perl.org/functions/readline.html"&gt;readline perldoc&lt;/a&gt; for newer Perl
+versions; the workaround is to read the files yourself, but this doesn&amp;rsquo;t
+handle standard input. (It also uses two argument &lt;a href="http://perldoc.perl.org/functions/open.html"&gt;open&lt;/a&gt;&lt;sup id="fnref:whybad"&gt;&lt;a class="footnote-ref" href="#fn:whybad" rel="footnote"&gt;3&lt;/a&gt;&lt;/sup&gt;!)
+You&amp;rsquo;ll need to handle standard input (and &lt;code&gt;-&lt;/code&gt; being used as a placeholder)
+specially.&lt;/p&gt;
+&lt;p&gt;Something like:&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="n"&gt;autodie&lt;/span&gt; &lt;span class="s"&gt;':io'&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+
+&lt;span class="nv"&gt;@ARGV&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;'-'&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="o"&gt;!&lt;/span&gt;&lt;span class="nv"&gt;@ARGV&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;foreach&lt;/span&gt; &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$arg&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;@ARGV&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$fh&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$arg&lt;/span&gt; &lt;span class="ow"&gt;eq&lt;/span&gt; &lt;span class="s"&gt;'-'&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="nv"&gt;$fh&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="o"&gt;\*&lt;/span&gt;&lt;span class="bp"&gt;STDIN&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+    &lt;span class="k"&gt;else&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="nb"&gt;open&lt;/span&gt; &lt;span class="nv"&gt;$fh&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;'&amp;lt;'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$arg&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+    &lt;span class="k"&gt;while&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt; &lt;span class="o"&gt;!&lt;/span&gt; &lt;span class="nb"&gt;eof&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$fh&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="nv"&gt;$_&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="sr"&gt;&amp;lt;$fh&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="o"&gt;...&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Not quite as simple as &lt;code&gt;while (&amp;lt;&amp;gt;) { ... }&lt;/code&gt;, huh? :(&lt;/p&gt;
+&lt;div class="footnote"&gt;
+&lt;hr /&gt;
+&lt;ol&gt;
+&lt;li id="fn:eflag"&gt;
+&lt;p&gt;If a command fails, abort the script rather than chugging onwards.&amp;nbsp;&lt;a class="footnote-backref" href="#fnref:eflag" rev="footnote" title="Jump back to footnote 1 in the text"&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li id="fn:pipeflag"&gt;
+&lt;p&gt;In a pipeline, if an earlier part of the pipe fails, don&amp;rsquo;t allow the non-zero exit code to be masked by commands later in the pipe that exit successfully. Critical!&amp;nbsp;&lt;a class="footnote-backref" href="#fnref:pipeflag" rev="footnote" title="Jump back to footnote 2 in the text"&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li id="fn:whybad"&gt;
+&lt;p&gt;With two argument open, special characters such as &lt;code&gt;&amp;gt;&lt;/code&gt; and &lt;code&gt;|&lt;/code&gt; will be interpreted respectively as &amp;lsquo;open the file for writing&amp;rsquo; and &amp;lsquo;open a shell with the following command for input/output&amp;rsquo;. Leading whitespace is trimmed, too. This causes subtle bugs and/or security flaws in your script.&amp;nbsp;&lt;a class="footnote-backref" href="#fnref:whybad" rev="footnote" title="Jump back to footnote 3 in the text"&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/div&gt;</summary><category term="perl"></category><category term="pbp"></category></entry><entry><title>All sorts of things you can get wrong in Unicode, and why</title><link href="http://richardharr.is/all-sorts-of-things-you-can-get-wrong-in-unicode-and-why.html" rel="alternate"></link><updated>2013-09-01T20:00:00+01:00</updated><author><name>Richard Harris</name></author><id>tag:richardharr.is,2013-09-01:all-sorts-of-things-you-can-get-wrong-in-unicode-and-why.html</id><summary type="html">&lt;p&gt;If you&amp;rsquo;ve read this &lt;a href="http://stackoverflow.com/questions/6162484/why-does-modern-perl-avoid-utf-8-by-default/6163129#6163129"&gt;StackOverflow post&lt;/a&gt;, you know about all the things you can
+get wrong when using Unicode. This post explains &lt;em&gt;why&lt;/em&gt;.&lt;/p&gt;
+&lt;p&gt;If you are not too familiar with Unicode, please read my &lt;a href="http://richardharr.is/unicode-in-five-minutes.html"&gt;introductory
+article&lt;/a&gt; first.&lt;/p&gt;
+&lt;h2&gt;General Unicode Assumptions&lt;/h2&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that assumes that web pages in Japanese or Chinese take up less space
+in UTF-16 than in UTF-8 is wrong.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;The majority of characters in an HTML document are markup (tags) and line
+terminators, not content. For &lt;em&gt;plain text&lt;/em&gt;, UTF-16 is a more compact encoding,
+as it represents code points between U+0800 and U+FFFF in 2 bytes rather than 3 -
+this range includes most commonly used &lt;abbr title="Chinese, Japanese, Korean and Vietnamese"&gt;CJKV&lt;/abbr&gt; characters.&lt;/p&gt;
+&lt;p&gt;Of course, HTML markup and line terminators are all firmly in the ASCII range,
+and represented as a single byte in UTF-8, but two in UTF-16.&lt;/p&gt;
+&lt;p&gt;There&amp;rsquo;s another downside to using UTF-16 in web pages: you&amp;rsquo;ll have to specify
+the encoding in your HTTP header. On the other hand, browsers are able to treat
+UTF-8 data as ASCII until they find a charset &lt;code&gt;meta&lt;/code&gt; tag.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that assumes roundtrip equality on casefolding, like &lt;code&gt;lc(uc($s)) eq $s&lt;/code&gt; or
+&lt;code&gt;uc(lc($s)) eq $s&lt;/code&gt;, is completely broken and wrong.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;(Assuming &lt;code&gt;$s&lt;/code&gt; is a single character)&lt;/p&gt;
+&lt;p&gt;tchrist already provides an example of &lt;span&gt;&lt;span class="unichar" data-code="03C3" data-name="GREEK SMALL LETTER SIGMA" title="GREEK SMALL LETTER SIGMA (U+03C3)"&gt;&amp;sigma;&lt;/span&gt;&lt;/span&gt; and &lt;span&gt;&lt;span class="unichar" data-code="03C2" data-name="GREEK SMALL LETTER FINAL SIGMA" title="GREEK SMALL LETTER FINAL SIGMA (U+03C2)"&gt;&amp;sigmaf;&lt;/span&gt;&lt;/span&gt;. The latter is for
+the last character in a word; both have an uppercase &lt;span&gt;&lt;span class="unichar" data-code="03A3" data-name="GREEK CAPITAL LETTER SIGMA" title="GREEK CAPITAL LETTER SIGMA (U+03A3)"&gt;&amp;Sigma;&lt;/span&gt;&lt;span&gt; GREEK CAPITAL LETTER SIGMA&lt;/span&gt;&lt;/span&gt; but the lowercase of
+&lt;span&gt;&lt;span class="unichar" data-code="03A3" data-name="GREEK CAPITAL LETTER SIGMA" title="GREEK CAPITAL LETTER SIGMA (U+03A3)"&gt;&amp;Sigma;&lt;/span&gt;&lt;/span&gt; is &lt;span&gt;&lt;span class="unichar" data-code="03C3" data-name="GREEK SMALL LETTER SIGMA" title="GREEK SMALL LETTER SIGMA (U+03C3)"&gt;&amp;sigma;&lt;/span&gt;&lt;/span&gt;.&lt;/p&gt;
+&lt;p&gt;There&amp;rsquo;s also &lt;span&gt;&lt;span class="unichar" data-code="00DF" data-name="LATIN SMALL LETTER SHARP S" title="LATIN SMALL LETTER SHARP S (U+00DF)"&gt;&amp;szlig;&lt;/span&gt;&lt;span&gt; LATIN SMALL LETTER SHARP S&lt;/span&gt;&lt;/span&gt; which is &amp;lsquo;SS&amp;rsquo; in uppercase, and therefore &amp;lsquo;ss&amp;rsquo; when mapped
+back to lowercase!&lt;/p&gt;
+&lt;p&gt;Finally, there&amp;rsquo;s &lt;span&gt;&lt;span class="unichar" data-code="01F2" data-name="LATIN CAPITAL LETTER D WITH SMALL LETTER Z" title="LATIN CAPITAL LETTER D WITH SMALL LETTER Z (U+01F2)"&gt;&amp;#498;&lt;/span&gt;&lt;/span&gt; which is &lt;span&gt;&lt;span class="unichar" data-code="01F1" data-name="LATIN CAPITAL LETTER DZ" title="LATIN CAPITAL LETTER DZ (U+01F1)"&gt;&amp;#497;&lt;/span&gt;&lt;/span&gt; in upper-case, and &lt;span&gt;&lt;span class="unichar" data-code="01F3" data-name="LATIN SMALL LETTER DZ" title="LATIN SMALL LETTER DZ (U+01F3)"&gt;&amp;#499;&lt;/span&gt;&lt;/span&gt; after
+mapping to lower-case again.&lt;/p&gt;
+&lt;p&gt;When you need to do case-insensitive comparisons, do a Unicode casefold on all
+the strings and compare those. Casefolding is explicitly a one-way operation.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that assumes changing the case doesn&amp;rsquo;t change the length of the string is
+broken.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;There are plenty of counterexamples, including &lt;span&gt;&lt;span class="unichar" data-code="FB00" data-name="LATIN SMALL LIGATURE FF" title="LATIN SMALL LIGATURE FF (U+FB00)"&gt;&amp;#64256;&lt;/span&gt;&lt;/span&gt; which uppercases to &amp;lsquo;FF&amp;rsquo;;
+the aforementioned &lt;span&gt;&lt;span class="unichar" data-code="00DF" data-name="LATIN SMALL LETTER SHARP S" title="LATIN SMALL LETTER SHARP S (U+00DF)"&gt;&amp;szlig;&lt;/span&gt;&lt;/span&gt;; and 101 other codepoints.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that believes that stuff like &lt;code&gt;/s/i&lt;/code&gt; can only match &amp;ldquo;S&amp;rdquo; or &amp;ldquo;s&amp;rdquo; is broken
+and wrong. You&amp;rsquo;d be surprised.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;It also matches &lt;span&gt;&lt;span class="unichar" data-code="017F" data-name="LATIN SMALL LETTER LONG S" title="LATIN SMALL LETTER LONG S (U+017F)"&gt;&amp;#383;&lt;/span&gt;&lt;/span&gt;. Similarly, &lt;code&gt;/k/i&lt;/code&gt; matches &lt;span&gt;&lt;span class="unichar" data-code="212A" data-name="KELVIN SIGN" title="KELVIN SIGN (U+212A)"&gt;&amp;#8490;&lt;/span&gt;&lt;span&gt; KELVIN SIGN&lt;/span&gt;&lt;/span&gt;.
+In both cases, the &lt;code&gt;/i&lt;/code&gt; flag is required.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that assumes that it cannot use &lt;code&gt;\x{FFFF}&lt;/code&gt; is wrong.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;The codepoint U+FFFF is illegal for &amp;lsquo;open interchange&amp;rsquo;; that is, it can be used
+&lt;em&gt;internally&lt;/em&gt; but should not form part of your program&amp;rsquo;s output.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that believes things like &amp;#8360; contain any letters in them is wrong.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;I am unsure about this because &lt;span&gt;&lt;span class="unichar" data-code="20A8" data-name="RUPEE SIGN" title="RUPEE SIGN (U+20A8)"&gt;&amp;#8360;&lt;/span&gt;&lt;/span&gt; has a &lt;em&gt;compatibility decomposition&lt;/em&gt; to &amp;lsquo;R&amp;rsquo; &amp;lsquo;s&amp;rsquo;
+(see the &lt;a href="http://www.unicode.org/charts/PDF/U20A0.pdf"&gt;code chart&lt;/a&gt;). In general though, &lt;span&gt;&lt;span class="unichar" data-code="20A8" data-name="RUPEE SIGN" title="RUPEE SIGN (U+20A8)"&gt;&amp;#8360;&lt;/span&gt;&lt;/span&gt;  won&amp;rsquo;t match a regex
+search for &amp;lsquo;R&amp;rsquo; or &amp;lsquo;s&amp;rsquo; unless decomposed as above. It also won&amp;rsquo;t match &lt;code&gt;\p{Letter}&lt;/code&gt;
+or &lt;code&gt;\p{Alphabetic}&lt;/code&gt;.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that converts unknown characters to ? is broken, stupid, braindead, and
+runs contrary to the standard recommendation, which says NOT TO DO THAT!
+RTFM for why not.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Unicode says text processors are allowed to not know about a codepoint (e.g.
+higher Unicode version, or a Private Use character) but they should pass it
+through unchanged. Replacing them with &amp;lsquo;?&amp;rsquo; destroys data.&lt;/p&gt;
+&lt;p&gt;Not to be confused with &lt;span&gt;&lt;span class="unichar" data-code="FFFD" data-name="REPLACEMENT CHARACTER" title="REPLACEMENT CHARACTER (U+FFFD)"&gt;&amp;#65533;&lt;/span&gt;&lt;span&gt; REPLACEMENT CHARACTER (U+FFFD)&lt;/span&gt;&lt;/span&gt;, used to replace
+characters that are unknown or not representable in Unicode. &lt;a href="http://www.unicode.org/standard/principles.html#Conformance"&gt;Defined
+here&lt;/a&gt;.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that assumes only letters have case is broken. Beyond just letters, it
+turns out that numbers, symbols, and even marks have case. In fact,
+changing the case can even make something change its main general category,
+like a &lt;code&gt;\p{Mark}&lt;/code&gt; turning into a &lt;code&gt;\p{Letter}&lt;/code&gt;. It can also make it switch from one
+script to another.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;I&amp;rsquo;ll illustrate this with examples.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Roman numerals such as &lt;span&gt;&lt;span class="unichar" data-code="2177" data-name="SMALL ROMAN NUMERAL EIGHT" title="SMALL ROMAN NUMERAL EIGHT (U+2177)"&gt;&amp;#8567;&lt;/span&gt;&lt;/span&gt;  and &lt;span&gt;&lt;span class="unichar" data-code="2167" data-name="ROMAN NUMERAL EIGHT" title="ROMAN NUMERAL EIGHT (U+2167)"&gt;&amp;#8551;&lt;/span&gt;&lt;/span&gt; clearly have case.&lt;/li&gt;
+&lt;li&gt;The &lt;span&gt;&lt;span class="unichar" data-code="00B5" data-name="MICRO SIGN" title="MICRO SIGN (U+00B5)"&gt;&amp;micro;&lt;/span&gt;&lt;span&gt; MICRO SIGN&lt;/span&gt;&lt;/span&gt; resides in the Common script for compatibility with Latin-1,
+   but uppercases to &lt;span&gt;&lt;span class="unichar" data-code="039C" data-name="GREEK CAPITAL LETTER MU" title="GREEK CAPITAL LETTER MU (U+039C)"&gt;&amp;Mu;&lt;/span&gt;&lt;span&gt; GREEK CAPITAL LETTER MU&lt;/span&gt;&lt;/span&gt;, in Greek.&lt;/li&gt;
+&lt;li&gt;Letters in circles such as &lt;span&gt;&lt;span class="unichar" data-code="24D7" data-name="CIRCLED LATIN SMALL LETTER H" title="CIRCLED LATIN SMALL LETTER H (U+24D7)"&gt;&amp;#9431;&lt;/span&gt;&lt;/span&gt; are cased, but have
+   &lt;code&gt;\p{General_Category=Symbol}&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;The mark &lt;span&gt;&lt;span class="unichar" data-code="0345" data-name="COMBINING GREEK YPOGEGRAMMENI" title="COMBINING GREEK YPOGEGRAMMENI (U+0345)"&gt;&amp;#9676;&amp;#837;&lt;/span&gt;&lt;span&gt; COMBINING GREEK YPOGEGRAMMENI&lt;/span&gt;&lt;/span&gt; is cased; it uppercases to &lt;span&gt;&lt;span class="unichar" data-code="0399" data-name="GREEK CAPITAL LETTER IOTA" title="GREEK CAPITAL LETTER IOTA (U+0399)"&gt;&amp;Iota;&lt;/span&gt;&lt;span&gt; GREEK CAPITAL LETTER IOTA&lt;/span&gt;&lt;/span&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;As an aside, 129 codepoints are &lt;code&gt;\p{Cased}&lt;/code&gt;, but map only to themselves.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that assumes that case is never locale-dependent is broken.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Casing is dependent on both language and the context of the character (for
+example if it appears in the middle or at the end of a word). See
+&lt;a href="ftp://ftp.unicode.org/Public/UNIDATA/SpecialCasing.txt"&gt;SpecialCasing&lt;/a&gt; for a few examples.&lt;/p&gt;
+&lt;p&gt;One example of language-dependent casing is whether or not to keep accents in
+capital letters.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that assumes there is only two cases is broken. There&amp;rsquo;s also titlecase.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Titlecase is used for ligatures and digraphs such as &amp;lsquo;fl&amp;rsquo;, &amp;lsquo;dz&amp;rsquo; and &amp;lsquo;lj&amp;rsquo;, which
+need special handling. For example, &lt;span&gt;&lt;span class="unichar" data-code="01C7" data-name="LATIN CAPITAL LETTER LJ" title="LATIN CAPITAL LETTER LJ (U+01C7)"&gt;&amp;#455;&lt;/span&gt;&lt;/span&gt; titlecases to &lt;span&gt;&lt;span class="unichar" data-code="01C8" data-name="LATIN CAPITAL LETTER L WITH SMALL LETTER J" title="LATIN CAPITAL LETTER L WITH SMALL LETTER J (U+01C8)"&gt;&amp;#456;&lt;/span&gt;&lt;/span&gt; rather than &lt;span&gt;&lt;span class="unichar" data-code="01C9" data-name="LATIN SMALL LETTER LJ" title="LATIN SMALL LETTER LJ (U+01C9)"&gt;&amp;#457;&lt;/span&gt;&lt;/span&gt;.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that assumes characters like &amp;gt; always points to the right and &amp;lt; always
+points to the left are wrong &amp;mdash; because they in fact do not.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;When using Right-to-Left rendering, glyphs such as &amp;gt; change appearance to &amp;lt; to
+account for the change of direction. )Otherwise parentheses would look odd(&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that assumes that all &lt;code&gt;\p{Math}&lt;/code&gt; code points are visible characters is
+wrong.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Four are invisible! They are intended for use in equations:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;span&gt;&lt;span class="unichar" data-code="2061" data-name="FUNCTION APPLICATION" title="FUNCTION APPLICATION (U+2061)"&gt;U+2061&lt;/span&gt;&lt;span&gt; FUNCTION APPLICATION&lt;/span&gt;&lt;/span&gt; &amp;mdash; e.g. sin&amp;#8289;&lt;em&gt;x&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;&lt;span&gt;&lt;span class="unichar" data-code="2062" data-name="INVISIBLE TIMES" title="INVISIBLE TIMES (U+2062)"&gt;U+2062&lt;/span&gt;&lt;span&gt; INVISIBLE TIMES&lt;/span&gt;&lt;/span&gt; &amp;mdash; e.g. 2&amp;#8290;&lt;em&gt;n&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;&lt;span&gt;&lt;span class="unichar" data-code="2063" data-name="INVISIBLE SEPARATOR" title="INVISIBLE SEPARATOR (U+2063)"&gt;U+2063&lt;/span&gt;&lt;span&gt; INVISIBLE SEPARATOR&lt;/span&gt;&lt;/span&gt; &amp;mdash; matrix indices: a&lt;sub&gt;i&amp;#8291;j&lt;/sub&gt;&lt;/li&gt;
+&lt;li&gt;&lt;span&gt;&lt;span class="unichar" data-code="2064" data-name="INVISIBLE PLUS" title="INVISIBLE PLUS (U+2064)"&gt;U+2064&lt;/span&gt;&lt;span&gt; INVISIBLE PLUS&lt;/span&gt;&lt;/span&gt; &amp;mdash; intended for fractions, such as 3&amp;#8292;&amp;frac12;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;This could allow renderers to do nifty things like line break in the middle of
+2&amp;#8290;&lt;em&gt;n&lt;/em&gt; and insert a multiplication sign (&amp;times;). The invisible plus is
+especially weird because as an operator, it would hold a higher precedence than
+multiplication!&lt;/p&gt;
+&lt;p&gt;Realistically though, dedicated math markup is best for this sort of thing.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that believes you can use &lt;span&gt;&lt;span class="unichar" data-code="1F42A" data-name="DROMEDARY CAMEL" title="DROMEDARY CAMEL (U+1F42A)"&gt;&amp;#128042;&lt;/span&gt;&lt;/span&gt; (Perl) printf widths to pad and justify Unicode data
+is broken and wrong.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;You can&amp;rsquo;t, because some characters have no width (combining accents, control
+characters) while some have double-width (CJKV ideographs, &amp;lsquo;full-width&amp;rsquo; letters).&lt;/p&gt;
+&lt;p&gt;Most likely &lt;code&gt;printf&lt;/code&gt; will interpret each codepoint as a character with a width
+of one, so for things like Chinese it&amp;rsquo;ll pad completely wrong.&lt;/p&gt;
+&lt;p&gt;For Perl the solution is &lt;a href="https://metacpan.org/module/Unicode::GCString"&gt;Unicode::GCString&lt;/a&gt;.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that assumes every code point takes up no more than one print column is broken.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Ideographic characters (CJKV) typically take up two print columns. More generally,
+anything with &lt;code&gt;East_Asian_Width&lt;/code&gt; equal to &lt;code&gt;Wide&lt;/code&gt; or &lt;code&gt;Fullwidth&lt;/code&gt; (&lt;span&gt;&lt;span class="unichar" data-code="1108" data-name="HANGUL CHOSEONG SSANGPIEUP" title="HANGUL CHOSEONG SSANGPIEUP (U+1108)"&gt;&amp;#4360;&lt;/span&gt;&lt;/span&gt;, &lt;span&gt;&lt;span class="unichar" data-code="FFE1" data-name="FULLWIDTH POUND SIGN" title="FULLWIDTH POUND SIGN (U+FFE1)"&gt;&amp;#65505;&lt;/span&gt;&lt;/span&gt;).
+This includes variants of the Latin alphabet, punctuation and numbers, which are
+designed to play nicely with CJKV characters.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that assumes that diacritics &lt;code&gt;\p{Diacritic}&lt;/code&gt; and marks &lt;code&gt;\p{Mark}&lt;/code&gt; are the
+same thing is broken.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Confusing nomenclature. If you care, read on.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;\p{Mark}&lt;/code&gt; is a general category composed of &lt;code&gt;\p{Nonspacing_Mark}&lt;/code&gt; (zero-width),
+&lt;code&gt;\p{Spacing_Mark}&lt;/code&gt; (positive width) and &lt;code&gt;\p{Enclosing_Mark}&lt;/code&gt;, all of which are
+combining characters. &lt;code&gt;\p{Diacritic}&lt;/code&gt; is a character property meaning &amp;lsquo;a character
+that linguistically modifies the meaning of another character to which they apply&amp;rsquo;,
+but may or may not be combining.&lt;/p&gt;
+&lt;p&gt;Marks (combining characters) that are not diacritics include general purpose combining
+characters like small Latin letters &lt;span&gt;&lt;span class="unichar" data-code="036A" data-name="COMBINING LATIN SMALL LETTER H" title="COMBINING LATIN SMALL LETTER H (U+036A)"&gt;&amp;#9676;&amp;#874;&lt;/span&gt;&lt;/span&gt;, vowel signs&lt;sup id="fnref:vowel"&gt;&lt;a class="footnote-ref" href="#fn:vowel" rel="footnote"&gt;1&lt;/a&gt;&lt;/sup&gt;, and variation selectors.
+There are 1,068 in total.&lt;/p&gt;
+&lt;p&gt;Diacritics that are not marks include Latin-1 characters such as &lt;span&gt;&lt;span class="unichar" data-code="005E" data-name="CIRCUMFLEX ACCENT" title="CIRCUMFLEX ACCENT (U+005E)"&gt;^&lt;/span&gt;&lt;/span&gt; and &lt;span&gt;&lt;span class="unichar" data-code="0060" data-name="GRAVE ACCENT" title="GRAVE ACCENT (U+0060)"&gt;`&lt;/span&gt;&lt;/span&gt;,
+full-width accents (&lt;span&gt;&lt;span class="unichar" data-code="FF3E" data-name="FULLWIDTH CIRCUMFLEX ACCENT" title="FULLWIDTH CIRCUMFLEX ACCENT (U+FF3E)"&gt;&amp;#65342;&lt;/span&gt;&lt;/span&gt;, &lt;span&gt;&lt;span class="unichar" data-code="FF40" data-name="FULLWIDTH GRAVE ACCENT" title="FULLWIDTH GRAVE ACCENT (U+FF40)"&gt;&amp;#65344;&lt;/span&gt;&lt;/span&gt;) and &amp;lsquo;modifier letters&amp;rsquo; such as &lt;span&gt;&lt;span class="unichar" data-code="02B0" data-name="MODIFIER LETTER SMALL H" title="MODIFIER LETTER SMALL H (U+02B0)"&gt;&amp;#688;&lt;/span&gt;&lt;/span&gt;. There
+are 209 in total.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that assumes that all &lt;code&gt;\p{Mark}&lt;/code&gt; characters take up zero print columns is broken.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;As discussed, &lt;code&gt;\p{Mark}&lt;/code&gt; includes spacing characters of non-zero width. They are mostly
+vowel signs.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that assumes &lt;code&gt;\p{GC=Dash_Punctuation}&lt;/code&gt; covers as much as &lt;code&gt;\p{Dash}&lt;/code&gt; is broken.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Four code points in other general categories have the &lt;code&gt;Dash&lt;/code&gt; property:
+&lt;span&gt;&lt;span class="unichar" data-code="2053" data-name="SWUNG DASH" title="SWUNG DASH (U+2053)"&gt;&amp;#8275;&lt;/span&gt;&lt;span&gt; SWUNG DASH&lt;/span&gt;&lt;/span&gt;, &lt;span&gt;&lt;span class="unichar" data-code="207B" data-name="SUPERSCRIPT MINUS" title="SUPERSCRIPT MINUS (U+207B)"&gt;&amp;#8315;&lt;/span&gt;&lt;span&gt; SUPERSCRIPT MINUS&lt;/span&gt;&lt;/span&gt;, &lt;span&gt;&lt;span class="unichar" data-code="208B" data-name="SUBSCRIPT MINUS" title="SUBSCRIPT MINUS (U+208B)"&gt;&amp;#8331;&lt;/span&gt;&lt;span&gt; SUBSCRIPT MINUS&lt;/span&gt;&lt;/span&gt;, &lt;span&gt;&lt;span class="unichar" data-code="2212" data-name="MINUS SIGN" title="MINUS SIGN (U+2212)"&gt;&amp;minus;&lt;/span&gt;&lt;span&gt; MINUS SIGN&lt;/span&gt;&lt;/span&gt;. Exciting! The latter three are in the &amp;ldquo;Math
+Symbol&amp;rdquo; category.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that assumes dash, hyphens, and minuses are the same thing as each other,
+or that there is only one of each, is broken and wrong.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Hyphens and minus signs are naturally different, and the main reason we use &lt;span&gt;&lt;span class="unichar" data-code="002D" data-name="HYPHEN-MINUS" title="HYPHEN-MINUS (U+002D)"&gt;-&lt;/span&gt;&lt;span&gt; HYPHEN-MINUS&lt;/span&gt;&lt;/span&gt;
+for both is ASCII legacy. Unicode supplies dedidated characters for both, &lt;span&gt;&lt;span class="unichar" data-code="2010" data-name="HYPHEN" title="HYPHEN (U+2010)"&gt;&amp;#8208;&lt;/span&gt;&lt;span&gt; HYPHEN&lt;/span&gt;&lt;/span&gt;
+and &lt;span&gt;&lt;span class="unichar" data-code="2212" data-name="MINUS SIGN" title="MINUS SIGN (U+2212)"&gt;&amp;minus;&lt;/span&gt;&lt;span&gt; MINUS SIGN&lt;/span&gt;&lt;/span&gt;, which your editor could substitute automatically.&lt;/p&gt;
+&lt;p&gt;Naturally there are lots of variants of each, such as &lt;span&gt;&lt;span class="unichar" data-code="2013" data-name="EN DASH" title="EN DASH (U+2013)"&gt;&amp;ndash;&lt;/span&gt;&lt;span&gt; EN DASH&lt;/span&gt;&lt;/span&gt; and &lt;span&gt;&lt;span class="unichar" data-code="2014" data-name="EM DASH" title="EM DASH (U+2014)"&gt;&amp;mdash;&lt;/span&gt;&lt;span&gt; EM DASH&lt;/span&gt;&lt;/span&gt;,
+&lt;span&gt;&lt;span class="unichar" data-code="2E17" data-name="DOUBLE OBLIQUE HYPHEN" title="DOUBLE OBLIQUE HYPHEN (U+2E17)"&gt;&amp;#11799;&lt;/span&gt;&lt;span&gt; DOUBLE OBLIQUE HYPHEN&lt;/span&gt;&lt;/span&gt;, &lt;span&gt;&lt;span class="unichar" data-code="2796" data-name="HEAVY MINUS SIGN" title="HEAVY MINUS SIGN (U+2796)"&gt;&amp;#10134;&lt;/span&gt;&lt;span&gt; HEAVY MINUS SIGN&lt;/span&gt;&lt;/span&gt;.&lt;/p&gt;
+&lt;h2&gt;Regular Expression Assumptions&lt;/h2&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that believes &lt;code&gt;\p{InLatin}&lt;/code&gt; is the same as &lt;code&gt;\p{Latin}&lt;/code&gt; is heinously broken.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;&lt;code&gt;\p{InLatin}&lt;/code&gt; does not exist in my Perl 5.16, but &lt;code&gt;\p{InLatin1}&lt;/code&gt; does: it&amp;rsquo;s the
+same as &lt;code&gt;\p{Block=Latin1}&lt;/code&gt; (filters by block). In contrast, &lt;code&gt;\p{Latin}&lt;/code&gt; is
+equivalent to &lt;code&gt;\p{Script=Latin}&lt;/code&gt; (filters by script). See &lt;a href="http://perldoc.perl.org/perluniprops.html"&gt;perluniprops&lt;/a&gt; for
+gory details.&lt;/p&gt;
+&lt;p&gt;These are clearly different; the Latin-1 block contains all kinds of junk,
+including control characters, superscripts, fractions and currency signs. In the
+other direction, Latin can be found in the ASCII block, and elsewhere.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that believes that &lt;code&gt;\p{InLatin}&lt;/code&gt; is almost ever useful is almost certainly
+wrong.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Again, assuming &lt;code&gt;\p{InLatin1}&lt;/code&gt;, it would be useless as the block has such a
+diverse set of characters.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that believes that given &lt;code&gt;$FIRST_LETTER&lt;/code&gt; as the first letter in some
+alphabet and &lt;code&gt;$LAST_LETTER&lt;/code&gt; as the last letter in that same alphabet, that
+&lt;code&gt;[${FIRST_LETTER}-${LAST_LETTER}]&lt;/code&gt; has any meaning whatsoever is almost
+always completely broken and wrong and meaningless.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Unicode places no semantic value on the codepoint number. It may or may not be
+related to nearby codepoints; if it is, it&amp;rsquo;s usually just because that was
+convenient when assigning them.&lt;/p&gt;
+&lt;p&gt;Alphabets vary by locale; while &lt;code&gt;[a-z]&lt;/code&gt; works OK for English (many may disagree&amp;hellip;),
+the Danish/Norweigian alphabet includes &amp;aelig;, &amp;oslash;, and &amp;aring; at the end. &lt;code&gt;[a-&amp;aring;]&lt;/code&gt; matches a
+huge chunk of ASCII and Latin-1, included most capital accented characters,
+Latin-1 control characters, and punctuation. Not ideal.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that assumes &lt;code&gt;\w&lt;/code&gt; contains only letters, digits, and underscores is wrong.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;&lt;code&gt;\w&lt;/code&gt; is generally locale specific for any &lt;abbr title="Portable Operating System Interface, a family of OS compatibility standards"&gt;POSIX&lt;/abbr&gt;-compatible regex engine.&lt;/p&gt;
+&lt;p&gt;For Perl 5.14+, &lt;code&gt;\w&lt;/code&gt; matches &amp;ldquo;anything that is a letter or digit
+&lt;em&gt;somewhere&lt;/em&gt; in the world&amp;rdquo;, but &lt;em&gt;also&lt;/em&gt; includes &amp;ldquo;connector punctuation marks and
+Unicode marks&amp;rdquo; (&lt;a href="http://perldoc.perl.org/perlre.html"&gt;perlre&lt;/a&gt;). This means vowel signs and combining accents. Use
+the regular expression &lt;code&gt;/a&lt;/code&gt; flag to get a more legacy behaviour where &lt;code&gt;\w&lt;/code&gt; is just
+&lt;code&gt;[a-z0-9_]&lt;/code&gt; and &lt;code&gt;\d&lt;/code&gt; is &lt;code&gt;[0-9]&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;In other languages, see documentation to see which definition of &lt;code&gt;\w&lt;/code&gt; applies.&lt;/p&gt;
+&lt;h2&gt;Perl Unicode Assumptions&lt;/h2&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that assumes Perl uses UTF&amp;#8209;8 internally is wrong.
+Code that assumes Perl code points are limited to &lt;code&gt;0x10_FFFF&lt;/code&gt; is wrong.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Wrong in multiple ways.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Perl uses a &lt;a href="http://perldoc.perl.org/Encode.html#UTF-8-vs.-utf8-vs.-UTF8"&gt;very permissive variant&lt;/a&gt; of UTF-8 it calls &amp;lsquo;utf8&amp;rsquo; which allows
+   very high codepoints (beyond &lt;code&gt;0x10_FFFF&lt;/code&gt;) and illegal characters or
+   sequences.&lt;/li&gt;
+&lt;li&gt;Perl may use &lt;abbr title="aka Latin-1"&gt;ISO-8859-1&lt;/abbr&gt; if the string&amp;rsquo;s &lt;code&gt;UTF8&lt;/code&gt; flag is unset.&lt;/li&gt;
+&lt;li&gt;On &lt;abbr title="Extended Binary Coded Decimal Interchange Code, used by IBM mainframes"&gt;EBCDIC&lt;/abbr&gt; platforms, different encodings may be used.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;The idea is that Perl&amp;rsquo;s internal representation is abstract; you should not rely
+on it; you should be blissfully unaware of it and just &lt;a href="http://perldoc.perl.org/Encode.html"&gt;decode&lt;/a&gt; input
+data into Perl&amp;rsquo;s representation, and then &lt;a href="http://perldoc.perl.org/Encode.html"&gt;encode&lt;/a&gt; when outputting it.&lt;/p&gt;
+&lt;p&gt;Unfortunately that is not true of Perls before 5.14 due to a variety of bugs,
+including &lt;a href="http://perldoc.perl.org/perlunicode.html#The-%22Unicode-Bug%22"&gt;The Unicode Bug&lt;/a&gt;.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that assumes you can set &lt;code&gt;$/&lt;/code&gt; to something that will work with any valid
+line separator is wrong.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;The set of valid Unicode linebreak sequences requires a regex, but &lt;code&gt;$/&lt;/code&gt; can only
+be a single string. You can use &lt;code&gt;\R&lt;/code&gt; in regular expressions to do The Right Thing&lt;span&gt;&lt;span class="unichar" data-code="2122" data-name="TRADE MARK SIGN" title="TRADE MARK SIGN (U+2122)"&gt;&amp;trade;&lt;/span&gt;&lt;/span&gt;.
+(see &lt;a href="http://perldoc.perl.org/perlrebackslash.html#Misc"&gt;perlrebackslash&lt;/a&gt;)&lt;/p&gt;
+&lt;h3&gt;Much Ado About &lt;code&gt;\X&lt;/code&gt;&lt;/h3&gt;
+&lt;p&gt;So &lt;code&gt;\X&lt;/code&gt; matches an &amp;lsquo;extended grapheme cluster&amp;rsquo; which is basically what a user would
+think of as a character. It accounts for decomposed Hangul, Latin characters with
+combining diacritics, and so on.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that uses &lt;code&gt;\PM\pM*&lt;/code&gt; to find grapheme clusters instead of using &lt;code&gt;\X&lt;/code&gt; is broken and wrong.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;&lt;code&gt;\PM\pM*&lt;/code&gt; means a non-mark char followed by zero or more mark chars. It has a couple
+of major differences I think:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;\X&lt;/code&gt; handles decomposed Hangul and regional indicators&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;\X&lt;/code&gt; uses Unicode&amp;rsquo;s &lt;code&gt;Grapheme_Cluster_Break&lt;/code&gt; properties instead of the &lt;code&gt;Mark&lt;/code&gt; general category.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;In short, it&amp;rsquo;s much better, but more complicated, so &lt;abbr title="Perl Compatible Regular Expressions library, used by many other languages"&gt;PCRE&lt;/abbr&gt; implements &lt;code&gt;\X&lt;/code&gt; as &lt;code&gt;\PM\pM*&lt;/code&gt; instead.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that assumes &lt;code&gt;\X&lt;/code&gt; can never start with a &lt;code&gt;\p{Mark}&lt;/code&gt; character is wrong.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Vowel signs (again!) are in &lt;code&gt;\p{Grapheme_Base}&lt;/code&gt; but also &lt;code&gt;\p{Mark}&lt;/code&gt;, so &lt;code&gt;\X&lt;/code&gt; may start with them.
+This makes sense if you think about it.&lt;/p&gt;
+&lt;p&gt;If it&amp;rsquo;s at the start of the string, &lt;code&gt;\X&lt;/code&gt; will match anything.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that assumes there is a limit to the number of code points in a row that
+just one &lt;code&gt;\X&lt;/code&gt; can match is wrong.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;This can be seen from the grammar of &lt;code&gt;\X&lt;/code&gt;:&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;# All the tables with _X_ in their names are used in defining \X handling,
+# and are based on the Unicode GCB property.  Basically, \X matches:
+#   CR LF
+#   | Prepend* Begin Extend*
+#   | .
+# Begin is:           ( Special_Begin | ! Control )
+# Begin is also:      ( Regular_Begin | Special_Begin )
+#   where Regular_Begin is defined as ( ! Control - Special_Begin )
+# Special_Begin is:   ( Regional-Indicator+ | Hangul-syllable )
+# Extend is:          ( Grapheme_Extend | Spacing_Mark )
+# Control is:         [ GCB_Control | CR | LF ]
+# Hangul-syllable is: ( T+ | ( L* ( L | ( LVT | ( V | LV ) V* ) T* ) ))
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;(Prepend, Extend, L/T/V etc. come from the &lt;code&gt;Grapheme_Cluster_Break&lt;/code&gt; property).&lt;/p&gt;
+&lt;p&gt;So it&amp;rsquo;ll slurp up all regional indicator characters and any number of L/V/T
+components in a decomposed Hangul syllable construction.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that assumes that &lt;code&gt;\X&lt;/code&gt; can never hold two non-&lt;code&gt;\p{Mark}&lt;/code&gt; characters is wrong.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Hangul components aren&amp;rsquo;t in &lt;code&gt;\p{Mark}&lt;/code&gt;, for example. There are also &lt;code&gt;\p{Grapheme_Extend}&lt;/code&gt;
+code points that lie outside &lt;code&gt;\p{Mark}&lt;/code&gt;, such as &lt;span&gt;&lt;span class="unichar" data-code="200C" data-name="ZERO WIDTH NON-JOINER" title="ZERO WIDTH NON-JOINER (U+200C)"&gt;U+200C&lt;/span&gt;&lt;/span&gt; and &lt;span&gt;&lt;span class="unichar" data-code="200D" data-name="ZERO WIDTH JOINER" title="ZERO WIDTH JOINER (U+200D)"&gt;U+200D&lt;/span&gt;&lt;/span&gt;.&lt;/p&gt;
+&lt;h3&gt;Encoding Assumptions&lt;/h3&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that believes UTF-16 is a fixed-width encoding is stupid, broken, and wrong.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;The confusion arises from UTF-16 using a fixed 2 bytes for every codepoint inside the
+&lt;abbr title="Basic Multilingual Plane"&gt;BMP&lt;/abbr&gt;, which is the 63K most common codepoints. Outside the BMP (~1M codepoints),
+they must be represented in 4 bytes via a surrogate pair consisting of one high
+and one low surrogate character.&lt;/p&gt;
+&lt;p&gt;Many programs assume UTF-16 is fixed width for performance reasons. These programs are
+broken unless they account for surrogates at some stage.&lt;/p&gt;
+&lt;p&gt;Even if you account for this though, you still need to worry about combining
+characters, whatever the encoding; one codepoint is not one character.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Code that assumes the CESU-8 is a valid UTF encoding is wrong. Likewise, code that thinks
+encoding U+0000 as &amp;ldquo;\xC0\x80&amp;rdquo; is UTF-8 is broken and wrong.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;&lt;a href="http://www.unicode.org/reports/tr26/"&gt;CESU-8&lt;/a&gt; is easily confused with UTF-8; it is similar, except codepoints outside the BMP
+are represented with UTF-16 surrogates which are themselves &amp;lsquo;encoded&amp;rsquo; in a similar manner to
+UTF-8. It is not a valid UTF encoding because UTF encodings don&amp;rsquo;t define how to encode surrogates.
+It&amp;rsquo;s also not part of the Unicode Standard.&lt;/p&gt;
+&lt;p&gt;Null bytes are encoded as &lt;code&gt;\xC0\x80&lt;/code&gt; to allow &lt;code&gt;\x00&lt;/code&gt; to be used as an end-of-string marker
+in C-like languages. This is not valid UTF-8 because UTF-8 requires the most minimal byte sequence to be
+used for each codepoint, which for codepoint 0 would be &lt;code&gt;\x00&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Curiously, Oracle and MySQL databases use CESU-8 internally but call it &amp;lsquo;UTF-8&amp;rsquo;.&lt;/p&gt;
+&lt;h3&gt;In case of mistakes&lt;/h3&gt;
+&lt;p&gt;If you come across anything misleading or just plain wrong, please &lt;a href="mailto:richardjharris@gmail.com"&gt;e-mail me&lt;/a&gt;.&lt;/p&gt;
+&lt;h3&gt;Acknowledgements&lt;/h3&gt;
+&lt;p&gt;Thanks to James Stanley for catching some formatting errors.&lt;/p&gt;
+&lt;div class="footnote"&gt;
+&lt;hr /&gt;
+&lt;ol&gt;
+&lt;li id="fn:vowel"&gt;
+&lt;p&gt;Vowel signs are used in scripts such Arabic where written vowels are optional.&amp;nbsp;&lt;a class="footnote-backref" href="#fnref:vowel" rev="footnote" title="Jump back to footnote 1 in the text"&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/div&gt;</summary><category term="perl"></category><category term="unicode"></category><category term="stackoverflow"></category></entry><entry><title>Much ado about unless</title><link href="http://richardharr.is/much-ado-about-unless.html" rel="alternate"></link><updated>2013-09-01T20:00:00+01:00</updated><author><name>Richard Harris</name></author><id>tag:richardharr.is,2013-09-01:much-ado-about-unless.html</id><summary type="html">&lt;p&gt;&lt;code&gt;unless&lt;/code&gt; is a language construct that I think sums up Perl in many ways. In the right
+hands, such syntactic choices can bring the code closer to the problem domain, aid
+readability, and allow great freedom of expression. In the wrong hands, it can produce
+a horrible mess which nobody can understand.&lt;/p&gt;
+&lt;p&gt;I have some simple heuristics for applying &lt;code&gt;unless&lt;/code&gt; that have worked well for me and people
+who read my code:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Use unless when the condition is negative.&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;You can avoid a double-negative by using &lt;code&gt;unless&lt;/code&gt; with negatively-named variables or
+functions. For example:&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="n"&gt;lock&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="k"&gt;unless&lt;/span&gt; &lt;span class="nv"&gt;$skip_locking&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&amp;hellip;compared with&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="n"&gt;lock&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="o"&gt;!&lt;/span&gt;&lt;span class="nv"&gt;$skip_locking&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Use unless to imply success.&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;Unlike the neutral &lt;code&gt;if&lt;/code&gt;, &lt;code&gt;unless&lt;/code&gt; implies that the block is likely to be executed
+(i.e. the condition is unlikely to occur, just as it does in English).
+It also implies that we &lt;em&gt;want&lt;/em&gt; the block to execute.&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="k"&gt;unless&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$going_to_throw_up&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="n"&gt;drink_shot&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;  &lt;span class="c1"&gt;# implication: throwing up is unlikely. Cheers!&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;vs.&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt; &lt;span class="o"&gt;!&lt;/span&gt; &lt;span class="nv"&gt;$going_to_throw_up&lt;/span&gt; &lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="n"&gt;drink_shot&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;   &lt;span class="c1"&gt;# implication: uhm, I'm feeling a little woozy...&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Even the notorious double negative can work in this context.&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="k"&gt;unless&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt; &lt;span class="o"&gt;!&lt;/span&gt; &lt;span class="n"&gt;file_readable&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$fh&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="c1"&gt;# do some shiz with $fh&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Contrast with the more neutral &lt;span style="white-space: nowrap"&gt;&lt;code&gt;if ( file_readable($fh) )&lt;/code&gt;&lt;/span&gt;.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Don&amp;rsquo;t use unless for complex expressions.&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;If the programmer needs to apply DeMorgan&amp;rsquo;s law to understand the conditional,
+use &lt;code&gt;if&lt;/code&gt; and apply it immediately. For instance, which of these two are more
+readable?&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="k"&gt;unless&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt; &lt;span class="nv"&gt;$have_work&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class="o"&gt;!&lt;/span&gt;&lt;span class="nv"&gt;$sunday&lt;/span&gt; &lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="n"&gt;sleep_in&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+
+&lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt; &lt;span class="o"&gt;!&lt;/span&gt;&lt;span class="nv"&gt;$have_work&lt;/span&gt; &lt;span class="o"&gt;||&lt;/span&gt; &lt;span class="nv"&gt;$sunday&lt;/span&gt; &lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="n"&gt;sleep_in&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Most likely, you had to mentally transform the &lt;code&gt;unless&lt;/code&gt; to an &lt;code&gt;if&lt;/code&gt; to understand
+it; in these cases, using &lt;code&gt;if&lt;/code&gt; is better.&lt;/p&gt;
+&lt;p&gt;Of course, even if you use &lt;code&gt;unless&lt;/code&gt; because a conditional is simple, it could get
+more complicated later. Refactoring the conditional into its own function or method
+protects you from this.&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="k"&gt;unless&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt; &lt;span class="nv"&gt;$query&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;param&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;'queue'&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+      &lt;span class="ow"&gt;or&lt;/span&gt; &lt;span class="nv"&gt;$query&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;param&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;'language'&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+      &lt;span class="ow"&gt;or&lt;/span&gt; &lt;span class="nv"&gt;$query&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;param&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;'domain'&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="c1"&gt;# Provide default status filter&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+
+&lt;span class="k"&gt;unless&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$query&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;has_status_filter&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="c1"&gt;# Provide default status filter&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Don&amp;rsquo;t use unless if you have an &lt;code&gt;elsif&lt;/code&gt; or &lt;code&gt;else&lt;/code&gt; block.&lt;/strong&gt;&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="k"&gt;unless&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$foo&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="o"&gt;...&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;span class="k"&gt;else&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="o"&gt;...&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Yep.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;</summary><category term="perl"></category><category term="pbp"></category></entry><entry><title>Unicode In Five Minutes ⌚</title><link href="http://richardharr.is/unicode-in-five-minutes.html" rel="alternate"></link><updated>2013-04-12T21:08:00+01:00</updated><author><name>Richard Harris</name></author><id>tag:richardharr.is,2013-04-12:unicode-in-five-minutes.html</id><summary type="html">&lt;h2&gt;Why&lt;/h2&gt;
+&lt;p&gt;One encoding covering &lt;em&gt;most&lt;/em&gt; of the world&amp;rsquo;s writing systems. Standard
+encoding of the web, most operating systems, Java and .NET.&lt;/p&gt;
+&lt;p&gt;Before Unicode, each script (or script family) had its own encoding, or
+worse, lots of different incompatible encodings. Unicode is a superset
+of almost all of them, so can be used for interchange.&lt;/p&gt;
+&lt;p&gt;It&amp;rsquo;s been around for &lt;a href="http://www.unicode.org/history/unicode88.pdf"&gt;over 30 years&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;Note: code examples are Perl-centric so far, because it has really good Unicode
+support and I know it; if you have examples for other languages, please do post
+a comment!&lt;/em&gt;&lt;/p&gt;
+&lt;h2&gt;What&lt;/h2&gt;
+&lt;p style="text-align: center"&gt;&lt;img alt="Unicode character examples" src="http://richardharr.is/static/images/unichar-examples.png" /&gt;&lt;/p&gt;
+&lt;p&gt;Unicode defines a &lt;em&gt;code point&lt;/em&gt; (number) for every character, such as &lt;span&gt;&lt;span class="unichar" data-code="0061" data-name="LATIN SMALL LETTER A" title="LATIN SMALL LETTER A (U+0061)"&gt;a&lt;/span&gt;&lt;/span&gt;, &lt;span&gt;&lt;span class="unichar" data-code="00E3" data-name="LATIN SMALL LETTER A WITH TILDE" title="LATIN SMALL LETTER A WITH TILDE (U+00E3)"&gt;&amp;atilde;&lt;/span&gt;&lt;/span&gt;,
+&lt;span&gt;&lt;span class="unichar" data-code="06D0" data-name="ARABIC LETTER E" title="ARABIC LETTER E (U+06D0)"&gt;&amp;#1744;&lt;/span&gt;&lt;/span&gt;, &lt;span&gt;&lt;span class="unichar" data-code="4E0D" data-name="CJK UNIFIED IDEOGRAPH-4E0D" title="CJK UNIFIED IDEOGRAPH-4E0D (U+4E0D)"&gt;&amp;#19981;&lt;/span&gt;&lt;/span&gt; and &lt;span&gt;&lt;span class="unichar" data-code="2603" data-name="SNOWMAN" title="SNOWMAN (U+2603)"&gt;&amp;#9731;&lt;/span&gt;&lt;/span&gt;. As of &lt;a href="http://www.unicode.org/versions/Unicode6.2.0/"&gt;Unicode 6.2&lt;/a&gt; there are &lt;strong&gt;109,976&lt;/strong&gt; code points!
+&lt;em&gt;(You can mouseover any highlighted character for more information.)&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;It also includes &lt;em&gt;combining characters&lt;/em&gt; such as &lt;span&gt;&lt;span class="unichar" data-code="0300" data-name="COMBINING GRAVE ACCENT" title="COMBINING GRAVE ACCENT (U+0300)"&gt;&amp;#9676;&amp;#768;&lt;/span&gt;&lt;/span&gt; which can be added to
+other characters; this way, Unicode does not need a code point for every possible
+combination of letter and accent. On the other hand, Unicode &lt;em&gt;generally&lt;/em&gt; doesn&amp;rsquo;t care
+about fonts or stylistic differences: it gives &lt;img alt="a (double-story)" src="http://richardharr.is/static/images/a1.png" style="vertical-align: bottom; border: none" /&gt;
+and &lt;img alt="a (single-story)" src="http://richardharr.is/static/images/a2.png" style="vertical-align: bottom; border: none" /&gt; the same codepoint.&lt;/p&gt;
+&lt;p&gt;It&amp;rsquo;s &lt;em&gt;more than just a character set&lt;/em&gt;: it also covers standard encodings such
+as UTF-8; &lt;nobr&gt;lower/upper/title&lt;/nobr&gt; case mapping; collation (sorting); line breaks;
+rendering; right-to-left script handling, and more.&lt;/p&gt;
+&lt;h2&gt;Normalization&lt;/h2&gt;
+&lt;p&gt;For compatibility with other encodings Unicode sometimes includes &lt;em&gt;precomposed&lt;/em&gt;
+versions of characters, for example, these three:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;span&gt;&lt;span class="unichar" data-code="00C5" data-name="LATIN CAPITAL LETTER A WITH RING ABOVE" title="LATIN CAPITAL LETTER A WITH RING ABOVE (U+00C5)"&gt;&amp;Aring;&lt;/span&gt;&lt;span&gt; LATIN CAPITAL LETTER A WITH RING ABOVE (U+00C5)&lt;/span&gt;&lt;/span&gt;&lt;/li&gt;
+&lt;li&gt;&lt;span&gt;&lt;span class="unichar" data-code="212B" data-name="ANGSTROM SIGN" title="ANGSTROM SIGN (U+212B)"&gt;&amp;#8491;&lt;/span&gt;&lt;span&gt; ANGSTROM SIGN (U+212B)&lt;/span&gt;&lt;/span&gt;&lt;/li&gt;
+&lt;li&gt;&lt;span&gt;&lt;span class="unichar" data-code="0041" data-name="LATIN CAPITAL LETTER A" title="LATIN CAPITAL LETTER A (U+0041)"&gt;A&lt;/span&gt;&lt;span&gt; LATIN CAPITAL LETTER A (U+0041)&lt;/span&gt;&lt;/span&gt; + &lt;span&gt;&lt;span class="unichar" data-code="030A" data-name="COMBINING RING ABOVE" title="COMBINING RING ABOVE (U+030A)"&gt;&amp;#9676;&amp;#778;&lt;/span&gt;&lt;span&gt; COMBINING RING ABOVE (U+030A)&lt;/span&gt;&lt;/span&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;For these to be treated as the same string in equality tests etc. you should
+run all input through &lt;a href="http://unicode.org/reports/tr15/"&gt;Unicode normalisation&lt;/a&gt;. The most common form is
+&lt;abbr title="Normalisation Form C (canonical decomposition + canonical composition)"&gt;NFC&lt;/abbr&gt;, which uses pre&lt;strong&gt;C&lt;/strong&gt;omposed characters where possible, and defines a strict ordering
+of diacritics if more than one exists. &lt;abbr title="Normalization Form D (canonical decomposition)"&gt;NFD&lt;/abbr&gt; &lt;strong&gt;D&lt;/strong&gt;ecomposes characters where possible.&lt;sup id="fnref:gory"&gt;&lt;a class="footnote-ref" href="#fn:gory" rel="footnote"&gt;1&lt;/a&gt;&lt;/sup&gt;&lt;/p&gt;
+&lt;p&gt;It doesn&amp;rsquo;t matter what form you use as long as you are consistent; NFD is
+faster in general (fewer codepoints) and &lt;a href="http://stackoverflow.com/a/6163129/74496"&gt;tchrist&lt;/a&gt; suggests running input
+through NFD and output through NFC.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Compatibility decomposition&lt;/strong&gt; also maps characters such as &lt;span&gt;&lt;span class="unichar" data-code="FB03" data-name="LATIN SMALL LIGATURE FFI" title="LATIN SMALL LIGATURE FFI (U+FB03)"&gt;&amp;#64259;&lt;/span&gt;&lt;/span&gt;, &lt;span&gt;&lt;span class="unichar" data-code="2168" data-name="ROMAN NUMERAL NINE" title="ROMAN NUMERAL NINE (U+2168)"&gt;&amp;#8552;&lt;/span&gt;&lt;/span&gt;
+and even &lt;span&gt;&lt;span class="unichar" data-code="2075" data-name="SUPERSCRIPT FIVE" title="SUPERSCRIPT FIVE (U+2075)"&gt;&amp;#8309;&lt;/span&gt;&lt;/span&gt; to &amp;lsquo;ffi&amp;rsquo;, &amp;lsquo;IX&amp;rsquo; and &amp;lsquo;5&amp;rsquo; respectively. This &lt;abbr title="Normalization Form KC (compatibility decomposition + canonical composition)"&gt;NFKC&lt;/abbr&gt; normalisation
+helps when searching for text.&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="c1"&gt;#!/usr/bin/perl&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="nn"&gt;Unicode::&lt;/span&gt;&lt;span class="n"&gt;Normalize&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$norm&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;NFD&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$str&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;hr /&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="c"&gt;#!/usr/bin/python&lt;/span&gt;
+&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;unicodedata&lt;/span&gt;
+&lt;span class="n"&gt;norm&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;unicodedata&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;normalize&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;'NFC'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;string&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;hr /&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="c1"&gt;#!/usr/bin/ruby&lt;/span&gt;
+&lt;span class="c1"&gt;# gem install unicode_utils&lt;/span&gt;
+&lt;span class="nb"&gt;require&lt;/span&gt; &lt;span class="s2"&gt;"unicode_utils/nfc"&lt;/span&gt;
+&lt;span class="n"&gt;norm&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="no"&gt;UnicodeUtils&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;nfc&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;string&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h2&gt;Casefolding&lt;/h2&gt;
+&lt;p&gt;Casing is not so simple in the Unicode world:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;Some strings actually change length when they change case: &lt;span&gt;&lt;span class="unichar" data-code="00DF" data-name="LATIN SMALL LETTER SHARP S" title="LATIN SMALL LETTER SHARP S (U+00DF)"&gt;&amp;szlig;&lt;/span&gt;&lt;/span&gt; uppercases
+  to &amp;lsquo;SS&amp;rsquo;.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;span&gt;&lt;span class="unichar" data-code="017F" data-name="LATIN SMALL LETTER LONG S" title="LATIN SMALL LETTER LONG S (U+017F)"&gt;&amp;#383;&lt;/span&gt;&lt;span&gt; LATIN SMALL LETTER LONG S&lt;/span&gt;&lt;/span&gt; should be seen as equal to &amp;lsquo;s&amp;rsquo; and &amp;lsquo;S&amp;rsquo; in case-insensitive comparisons.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;span&gt;&lt;span class="unichar" data-code="03A3" data-name="GREEK CAPITAL LETTER SIGMA" title="GREEK CAPITAL LETTER SIGMA (U+03A3)"&gt;&amp;Sigma;&lt;/span&gt;&lt;span&gt; GREEK CAPITAL LETTER SIGMA&lt;/span&gt;&lt;/span&gt; has &lt;em&gt;two&lt;/em&gt; lowercase forms: &lt;span&gt;&lt;span class="unichar" data-code="03C3" data-name="GREEK SMALL LETTER SIGMA" title="GREEK SMALL LETTER SIGMA (U+03C3)"&gt;&amp;sigma;&lt;/span&gt;&lt;/span&gt; at the beginning or middle of the
+  word, and &lt;span&gt;&lt;span class="unichar" data-code="03C2" data-name="GREEK SMALL LETTER FINAL SIGMA" title="GREEK SMALL LETTER FINAL SIGMA (U+03C2)"&gt;&amp;sigmaf;&lt;/span&gt;&lt;/span&gt; at the end of a word.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Casing is &lt;em&gt;mostly&lt;/em&gt; consistent across locales, but Turkish is an exception: it
+  has both a &lt;a href="https://en.wikipedia.org/wiki/Dotted_and_dotless_I"&gt;Dotted and dotless I&lt;/a&gt;, in both lower and upper cases.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;To ensure your code handles these cases, and any new ones, Unicode provides a
+&lt;em&gt;one-way&lt;/em&gt; &amp;lsquo;casefold&amp;rsquo; operation that allows case-insensitive comparison:&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="c1"&gt;#!/usr/bin/perl&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="nn"&gt;Unicode::&lt;/span&gt;&lt;span class="n"&gt;CaseFold&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;   &lt;span class="c1"&gt;# or: use v5.16;&lt;/span&gt;
+&lt;span class="nb"&gt;sort&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt; &lt;span class="n"&gt;fc&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$a&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="ow"&gt;cmp&lt;/span&gt; &lt;span class="n"&gt;fc&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$b&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="nv"&gt;@stuff&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Casefolding does &lt;em&gt;not&lt;/em&gt; include normalization, so do that too.&lt;/p&gt;
+&lt;h2&gt;Sorting&lt;/h2&gt;
+&lt;p&gt;Sorting (or &lt;em&gt;collation&lt;/em&gt;) is &lt;strong&gt;locale specific&lt;/strong&gt; and just as riddled with
+pecularities as casing:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;German and Swedish both have &amp;auml; and &amp;ouml; but sort them differently - German
+    treats them as variants of the same letters without umlauts (i.e. &amp;lsquo;a&lt;strong&gt;&amp;auml;&lt;/strong&gt;bcdefghijklmno&lt;strong&gt;&amp;ouml;&lt;/strong&gt;pqrstuvwxyz&amp;rsquo;)
+    whereas Swedish considers them new letters, and puts them at the end (&amp;lsquo;abcdefghijklmnopqrstuvwxyz&lt;strong&gt;&amp;auml;&amp;ouml;&lt;/strong&gt;&amp;lsquo;)&lt;/p&gt;
+&lt;p&gt;It&amp;rsquo;s important that things are sorted in the order the user expects.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Sorting varies by application too; phonebooks are often sorted differently to book
+    indices, for example.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;For Chinese characters and other ideographs, there are many possible orders, e.g.
+    pinyin (phonetic), by stroke count, etc.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Collations can be &lt;em&gt;tailored&lt;/em&gt; based on user preferences, e.g. lower or upper-case first?&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;It&amp;rsquo;s not enough to just sort by binary comparison. And codepoints aren&amp;rsquo;t generally in any
+sensible order either. Fortunately Unicode specifies a &lt;a href="http://www.unicode.org/reports/tr10/"&gt;Collation Algorithm&lt;/a&gt;
+that is immensely customisable, covers all the edge-cases, and does clever things to make
+it reasonably fast. Here&amp;rsquo;s an example:&lt;sup id="fnref:locale"&gt;&lt;a class="footnote-ref" href="#fn:locale" rel="footnote"&gt;2&lt;/a&gt;&lt;/sup&gt;&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="c1"&gt;#!/usr/bin/perl&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="nn"&gt;Unicode::Collate::&lt;/span&gt;&lt;span class="n"&gt;Locale&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$collator&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nn"&gt;Unicode::Collate::&lt;/span&gt;&lt;span class="n"&gt;Locale&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="k"&gt;new&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;locale&lt;/span&gt; &lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="s"&gt;'DE'&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;@sorted&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nv"&gt;$collator&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="nb"&gt;sort&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;@array&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;span class="nv"&gt;$collator&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="ow"&gt;cmp&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$word&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$another_word&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;  &lt;span class="c1"&gt;# -&amp;gt; -1, 0 or 1&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;The &lt;abbr title="Unicode Collation Algorithm"&gt;UCA&lt;/abbr&gt; can do other clever things, such as sort &amp;lsquo;10&amp;rsquo; after &amp;lsquo;2&amp;rsquo; numerically, or sort
+the character &amp;lsquo;?&amp;rsquo; as if it was the string &amp;lsquo;question mark&amp;rsquo;.&lt;/p&gt;
+&lt;h2&gt;Encodings&lt;/h2&gt;
+&lt;p&gt;The big ones are &lt;code&gt;UTF-8&lt;/code&gt;, &lt;code&gt;UTF-16&lt;/code&gt; and &lt;code&gt;UTF-32&lt;/code&gt;. Each one guarantees a reversible
+mapping of almost every codepoint&lt;sup id="fnref:every"&gt;&lt;a class="footnote-ref" href="#fn:every" rel="footnote"&gt;3&lt;/a&gt;&lt;/sup&gt; to a byte sequence.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;UTF-32&lt;/strong&gt; is dead simple: each codepoint gets four bytes. Takes up tons of space,
+  not recommended for interchange.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;UTF-8&lt;/strong&gt; is very common the web. It&amp;rsquo;s byte-oriented (no endianness issues),
+  handles corruption well, is ASCII-compatible and takes up minimal space for text
+  that is mostly ASCII (e.g. HTML).&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;Code points between U+0800 and U+FFFF, which includes commonly used &lt;abbr title="Chinese, Japanese, Korean and Vietnamese"&gt;CJKV&lt;/abbr&gt;
+  characters, will take up 3 bytes instead of 2. So UTF-16 may be more space
+  efficient.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;ASCII-compatibility is helpful to allow UTF-8 to stealth its way through
+  scripts and processes that are not Unicode-aware. But if such a system tries to
+  do anything with the data (casing, sub-strings, regex), that data may be
+  corrupted.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;UTF-16&lt;/strong&gt; is used by Java, .NET and Windows. It uses 2 bytes (16-bit) to
+  represent the most common 63K codepoints, and 4 bytes for the less common 1M
+  codepoints (using two &amp;lsquo;surrogate&amp;rsquo; codepoints).&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;Contrary to popular belief, UTF-16 is not a fixed-width encoding. But as
+  long as it contains no surrogates, it can be treated as one, which can speed
+  up string operations.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;UTF-16 streams typically begin with &lt;span&gt;&lt;span class="unichar" data-code="FEFF" data-name="ZERO WIDTH NO-BREAK SPACE" title="ZERO WIDTH NO-BREAK SPACE (U+FEFF)"&gt;U+FEFF&lt;/span&gt;&lt;/span&gt;&lt;sup id="fnref:bomnote"&gt;&lt;a class="footnote-ref" href="#fn:bomnote" rel="footnote"&gt;4&lt;/a&gt;&lt;/sup&gt; to detect the endianness
+  (byte order) of the stream. Otherwise, you can explicitly encode or decode
+  via &amp;lsquo;UTF-16BE&amp;rsquo; or &amp;lsquo;UTF-16LE&amp;rsquo; to specify the endianness.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Unicode and internationalised domain names&lt;/h2&gt;
+&lt;p&gt;International characters create a &lt;a href="http://en.wikipedia.org/wiki/IDN_homograph_attack"&gt;big problem&lt;/a&gt;
+for domain names. Just as &lt;span&gt;&lt;span class="unichar" data-code="0049" data-name="LATIN CAPITAL LETTER I" title="LATIN CAPITAL LETTER I (U+0049)"&gt;I&lt;/span&gt;&lt;/span&gt; and &lt;span&gt;&lt;span class="unichar" data-code="006C" data-name="LATIN SMALL LETTER L" title="LATIN SMALL LETTER L (U+006C)"&gt;l&lt;/span&gt;&lt;/span&gt; look similar, Unicode multiplies that problem
+by 1,000, in addition to adding numerous invisible control characters, spacing characters
+and right-to-left text.&lt;/p&gt;
+&lt;p&gt;Browsers and registrars have implemented several measures against this:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Many TLDs restrict which characters can be used in domain names.&lt;/li&gt;
+&lt;li&gt;Browsers may display the domain in Punycode (see below) if the domain includes characters
+  from multiple scripts and/or characters not belonging to one of the user&amp;rsquo;s preferred languages.&lt;/li&gt;
+&lt;li&gt;Internationalised country codes such as .&amp;#1088;&amp;#1092; (Russia) only accept Cyrillic names.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;nameprep/stringprep&lt;/h3&gt;
+&lt;p&gt;&lt;a href="http://tools.ietf.org/html/rfc3491"&gt;RFC 3491&lt;/a&gt; defines &lt;em&gt;nameprep&lt;/em&gt;, a mechanism
+to case-fold, normalize and sanitize strings before they can be used in domain names. This
+removes many invisible characters and throws an error if prohibited code points are in use.&lt;/p&gt;
+&lt;p&gt;It is implemented in terms of a wider framework called &lt;em&gt;stringprep&lt;/em&gt;. In Perl, one can use
+&lt;a href="https://metacpan.org/module/Net::IDN::Encode"&gt;Net::IDN::Encode&lt;/a&gt; which will also perform Punycode conversion.&lt;/p&gt;
+&lt;h3&gt;Punycode&lt;/h3&gt;
+&lt;p&gt;For legacy reasons DNS does not allow extended characters outside of ASCII, so Punycode
+is an ASCII-compatible encoding scheme. For example, &lt;code&gt;caf&amp;eacute;.com&lt;/code&gt; becomes &lt;code&gt;xn--caf-dma.com&lt;/code&gt;.
+All Punycode-encoded domain components are instantly recognisable by their &lt;code&gt;xn--&lt;/code&gt; prefix.&lt;/p&gt;
+&lt;p&gt;This goes for TLDs too: .&amp;#20013;&amp;#22269; is really known as &lt;em&gt;xn&amp;mdash;fiqs8s&lt;/em&gt;.&lt;/p&gt;
+&lt;h2&gt;The problem of &amp;lsquo;user characters&amp;rsquo;&lt;/h2&gt;
+&lt;p&gt;In Perl at least, everything (&lt;code&gt;substr&lt;/code&gt;, &lt;code&gt;length&lt;/code&gt;, &lt;code&gt;index&lt;/code&gt;, &lt;code&gt;reverse&lt;/code&gt;&amp;hellip;) works on the level
+of codepoints. This is often not what you want, because what a user considers to be a
+character such as &amp;#1118; is actually two codepoints (&lt;span&gt;&lt;span class="unichar" data-code="0079" data-name="LATIN SMALL LETTER Y" title="LATIN SMALL LETTER Y (U+0079)"&gt;y&lt;/span&gt;&lt;/span&gt; + &lt;span&gt;&lt;span class="unichar" data-code="0306" data-name="COMBINING BREVE" title="COMBINING BREVE (U+0306)"&gt;&amp;#9676;&amp;#774;&lt;/span&gt;&lt;/span&gt;). Here&amp;rsquo;s a &lt;a href="http://www.nntp.perl.org/group/perl.perl5.porters/2011/10/msg178687.html"&gt;really good
+usenet post&lt;/a&gt; on the subject.&lt;/p&gt;
+&lt;p&gt;Even seemingly innocuous things like &lt;code&gt;printf "%-10s", $str&lt;/code&gt; breaks completely for combining characters,
+double-width characters (e.g. Chinese/Japanese) or zero-width characters.&lt;/p&gt;
+&lt;p&gt;Fortunately Perl provides the &lt;code&gt;\X&lt;/code&gt; regular expression metachar which matches exactly one
+&amp;lsquo;extended grapheme cluster&amp;rsquo;, i.e. what a user would consider a character to be. A more robust
+solution is to install &lt;a href="https://metacpan.org/module/Unicode::GCString"&gt;Unicode::GCString&lt;/a&gt;:&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="c1"&gt;#!/usr/bin/perl&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="nn"&gt;Unicode::&lt;/span&gt;&lt;span class="n"&gt;GCString&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="nn"&gt;Unicode::&lt;/span&gt;&lt;span class="n"&gt;Normalize&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="n"&gt;utf8&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="nb"&gt;open&lt;/span&gt; &lt;span class="sx"&gt;qw(:std :encoding(UTF-8))&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+
+&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$s&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;NFD&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;"cr&amp;egrave;me br&amp;ucirc;l&amp;eacute;e"&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;  &lt;span class="c1"&gt;# ensure combining marks get their own codepoint&lt;/span&gt;
+&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$g&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nn"&gt;Unicode::&lt;/span&gt;&lt;span class="n"&gt;GCString&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="k"&gt;new&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$s&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+
+&lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="nv"&gt;$g&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="nb"&gt;length&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;"\n"&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;       &lt;span class="c1"&gt;# 12, not 15&lt;/span&gt;
+&lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="nb"&gt;reverse&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;@$g&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="s"&gt;"\n"&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;     &lt;span class="c1"&gt;# 'ee&amp;#769;lu&amp;#770;rb eme&amp;#768;rc', not 'e&amp;#769;el&amp;#770;urb em&amp;#768;erc'&lt;/span&gt;
+&lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="nv"&gt;$g&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="nb"&gt;substr&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="mi"&gt;5&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="s"&gt;"\n"&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;  &lt;span class="c1"&gt;# 'cre&amp;#768;me', not 'cre&amp;#768;m'&lt;/span&gt;
+&lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="nv"&gt;$g&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="nb"&gt;substr&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="s"&gt;"\n"&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;  &lt;span class="c1"&gt;# 'cre&amp;#768;', not 'cre'&lt;/span&gt;
+
+&lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="s"&gt;"1234512345123451234512345|\n"&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="nb"&gt;printf&lt;/span&gt; &lt;span class="s"&gt;"%s%*s|\n"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$g&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;25&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="nv"&gt;$g&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;columns&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="s"&gt;''&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;  &lt;span class="c1"&gt;# 25 columns long (&amp;#7508;&amp;#7461;&amp;#7508;)&lt;/span&gt;
+
+&lt;span class="nb"&gt;printf&lt;/span&gt; &lt;span class="s"&gt;"%-25s|\n"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$s&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;                          &lt;span class="c1"&gt;# 22 columns long (&amp;#9583;&amp;deg;&amp;#9633;&amp;deg;&amp;#65289;&amp;#9583;&amp;#65077; &amp;#9531;&amp;#9473;&amp;#9531;&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h3&gt;Line breaks&lt;/h3&gt;
+&lt;p&gt;Line breaking (or word wrapping) is another thing that becomes &lt;a href="http://www.unicode.org/reports/tr14/"&gt;insanely complicated&lt;/a&gt;
+once Unicode is involved. You have to account for various non-breaking and breaking control
+and spacing characters, punctuation in every language (e.g. &lt;span&gt;&lt;span class="unichar" data-code="00AB" data-name="LEFT-POINTING DOUBLE ANGLE QUOTATION MARK" title="LEFT-POINTING DOUBLE ANGLE QUOTATION MARK (U+00AB)"&gt;&amp;laquo;&lt;/span&gt;&lt;/span&gt; and &lt;span&gt;&lt;span class="unichar" data-code="00BB" data-name="RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK" title="RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK (U+00BB)"&gt;&amp;raquo;&lt;/span&gt;&lt;/span&gt; quotes, or the
+full stop or comma being used in numerics such as &lt;code&gt;2,140&lt;/code&gt;) and the width of each character.&lt;/p&gt;
+&lt;p&gt;In Perl, this has all been handled for you - just use &lt;a href="https://metacpan.org/module/Unicode::LineBreak"&gt;Unicode::LineBreak&lt;/a&gt;.&lt;/p&gt;
+&lt;h2&gt;Regular expressions&lt;/h2&gt;
+&lt;p&gt;Some useful Perl regular expression syntax:&lt;/p&gt;
+&lt;dl&gt;
+&lt;dt&gt;&lt;code&gt;\R&lt;/code&gt;&lt;/dt&gt;
+&lt;dd&gt;Match any Unicode linebreak sequence (including &lt;code&gt;\n&lt;/code&gt;, &lt;code&gt;\r\n&lt;/code&gt; and six others)&lt;/dd&gt;
+&lt;dt&gt;&lt;code&gt;\p&lt;/code&gt;, &lt;code&gt;\P&lt;/code&gt;&lt;/dt&gt;
+&lt;dd&gt;Match any codepoint possessing (or not possessing) a Unicode property.&lt;/dd&gt;
+&lt;dd&gt;Common ones are &lt;code&gt;\pL&lt;/code&gt; (Letter), &lt;code&gt;\pU&lt;/code&gt; (Uppercase), &lt;code&gt;\pS&lt;/code&gt; (Symbol), or even &lt;code&gt;\p{script=Latin}&lt;/code&gt;,
+&lt;code&gt;\p{East_Asian_Width=Wide}&lt;/code&gt;, &lt;code&gt;\p{Numeric_Value=4}&lt;/code&gt;.&lt;/dd&gt;
+&lt;dd&gt;See &lt;a href="http://perldoc.perl.org/perluniprops.html"&gt;perluniprops&lt;/a&gt; for a big list.&lt;/dd&gt;
+&lt;dd&gt;Built-in character classes such as &lt;code&gt;\w&lt;/code&gt;, &lt;code&gt;\b&lt;/code&gt;, &lt;code&gt;\s&lt;/code&gt; and &lt;code&gt;\d&lt;/code&gt; are Unicode-aware since Perl
+5.6 (though you need to make sure your string or pattern has the &lt;code&gt;UTF8&lt;/code&gt; flag on!) Disable this
+with the &lt;code&gt;/a&lt;/code&gt; flag (see &lt;a href="http://perldoc.perl.org/perlre.html#Character-set-modifiers"&gt;perlre&lt;/a&gt;).&lt;/dd&gt;
+&lt;dt&gt;&lt;code&gt;\X&lt;/code&gt;&lt;/dt&gt;
+&lt;dd&gt;Match an extended grapheme cluster, which is basically a user-visible &amp;lsquo;character&amp;rsquo;.&lt;/dd&gt;
+&lt;dd&gt;Use it instead of &lt;b&gt;&lt;code&gt;.&lt;/code&gt;&lt;/b&gt; unless you want codepoints.&lt;/dd&gt;
+&lt;dd&gt;
+&lt;p&gt;E.g. to match a vowel with optional diacritics or marks (&lt;a href="http://www.perl.com/pub/2012/05/perlunicook-match-unicode-grapheme-cluster-in-regex.html"&gt;source&lt;/a&gt;):&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$nfd&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;NFD&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$string&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;span class="nv"&gt;$nfd&lt;/span&gt; &lt;span class="o"&gt;=~&lt;/span&gt;&lt;span class="sr"&gt; / (?=[aeiou]) \X /xi&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;/dd&gt;
+&lt;/dl&gt;
+&lt;hr /&gt;
+&lt;h2&gt;Trivia&lt;/h2&gt;
+&lt;h3&gt;Filesystems&lt;/h3&gt;
+&lt;p&gt;When you use Unicode strings as file or directory names, all bets are off. What encoding do you
+use? What &lt;em&gt;API&lt;/em&gt; do you use? (Windows has two, one speaks Unicode, the other tries to use locale-dependent
+encodings). Some filesystems perform normalization such as NFD on file names, such as Mac OS X; this
+may be an issue if your platform doesn&amp;rsquo;t understand decomposed Unicode.&lt;/p&gt;
+&lt;p&gt;In summary, consult docs and test your assumptions.&lt;/p&gt;
+&lt;h3&gt;Han Unification&lt;/h3&gt;
+&lt;p&gt;Han characters are a common feature of Chinese, Japanese (kanji) and historical
+Korean and Vietnamese.
+Many have a distinct visual appearance depending on the script, but Unicode unifies
+them as a single codepoint for simplicity and performance reasons (&lt;a href="http://en.wikipedia.org/wiki/Han_unification#Examples_of_language_dependent_characters"&gt;examples&lt;/a&gt;).&lt;/p&gt;
+&lt;p&gt;This caused controversy because the visual form of a character can be &lt;em&gt;meaningful&lt;/em&gt;;
+users may not be shown their national variant but rather some other country&amp;rsquo;s version.
+In some cases they can look very different (e.g. &lt;span&gt;&lt;span class="unichar" data-code="76F4" data-name="CJK UNIFIED IDEOGRAPH-76F4" title="CJK UNIFIED IDEOGRAPH-76F4 (U+76F4)"&gt;&amp;#30452;&lt;/span&gt;&lt;/span&gt;). Just as Western names vary
+(e.g. &amp;lsquo;John&amp;rsquo; or &amp;lsquo;Jon&amp;rsquo;) Japanese names may use specific glyph variants that Unicode
+does not provide, so people cannot actually write their own name the way they&amp;rsquo;d prefer!&lt;/p&gt;
+&lt;p&gt;In practice, users select a typeface that renders glyphs in the style they want, be
+that Japanese or Chinese. Variation Selectors (see below) are another solution to the
+problem.&lt;/p&gt;
+&lt;p&gt;For political and legacy reasons (compatibility with older character sets), Unicode
+does not attempt to unify simplified and traditional Chinese.&lt;/p&gt;
+&lt;h3&gt;Emoji&lt;/h3&gt;
+&lt;p&gt;Version 6.0 of Unicode adds 722 &amp;lsquo;emoji&amp;rsquo; characters, which are emoticons used
+mostly on Japanese phones, but recently in Mac OS X (Lion), Gmail, iPhone and Windows
+Phone 7. Some fonts may choose to render them as full-colour emoticons; some may not
+support them at all.&lt;/p&gt;
+&lt;p&gt;Emoji is the reason why Unicode includes &lt;span&gt;&lt;span class="unichar" data-code="1F3E9" data-name="LOVE HOTEL" title="LOVE HOTEL (U+1F3E9)"&gt;&amp;#127977;&lt;/span&gt;&lt;span&gt; LOVE HOTEL&lt;/span&gt;&lt;/span&gt; and &lt;span&gt;&lt;span class="unichar" data-code="1F4A9" data-name="PILE OF POO" title="PILE OF POO (U+1F4A9)"&gt;&amp;#128169;&lt;/span&gt;&lt;span&gt; PILE OF POO&lt;/span&gt;&lt;/span&gt;. (If you can&amp;rsquo;t see
+them, install &lt;a href="http://users.teilar.gr/~g1951d/"&gt;Symbola&lt;/a&gt;, or click the fileformat.info link for a picture).&lt;/p&gt;
+&lt;h4&gt;Regional Indicator symbols&lt;/h4&gt;
+&lt;p style="text-align: center"&gt;&lt;img alt="Regional indicator example (FR)" src="http://richardharr.is/static/images/regional-indicators.png" style="max-width: 352px" /&gt;&lt;/p&gt;
+&lt;p&gt;Unicode 6.0&amp;rsquo;s emoji introduced symbols for many country flags,
+but not all of them. As an alternative, the range &lt;span&gt;&lt;span class="unichar" data-code="1F1E6" data-name="REGIONAL INDICATOR SYMBOL LETTER A" title="REGIONAL INDICATOR SYMBOL LETTER A (U+1F1E6)"&gt;U+1F1E6&lt;/span&gt;&lt;/span&gt;..&lt;span&gt;&lt;span class="unichar" data-code="1F1FF" data-name="REGIONAL INDICATOR SYMBOL LETTER Z" title="REGIONAL INDICATOR SYMBOL LETTER Z (U+1F1FF)"&gt;U+1F1FF&lt;/span&gt;&lt;/span&gt;
+defines symbols from A to Z. If two symbols from this range form an ISO-3166-1
+country code (e.g. &amp;lsquo;FR&amp;rsquo; for France), the renderer may choose to display it
+as a flag instead!&lt;/p&gt;
+&lt;h3&gt;Variation Selectors&lt;/h3&gt;
+&lt;p&gt;Variation Selectors are codepoints that change the way the character before
+them is rendered. There are 256 and they occupy the ranges &lt;span&gt;&lt;span class="unichar" data-code="FE00" data-name="VARIATION SELECTOR-1" title="VARIATION SELECTOR-1 (U+FE00)"&gt;U+FE00&lt;/span&gt;&lt;/span&gt;..&lt;span&gt;&lt;span class="unichar" data-code="FE0F" data-name="VARIATION SELECTOR-16" title="VARIATION SELECTOR-16 (U+FE0F)"&gt;U+FE0F&lt;/span&gt;&lt;/span&gt;
+and &lt;span&gt;&lt;span class="unichar" data-code="E0100" data-name="VARIATION SELECTOR-17" title="VARIATION SELECTOR-17 (U+E0100)"&gt;U+E0100&lt;/span&gt;&lt;/span&gt;..&lt;span&gt;&lt;span class="unichar" data-code="E01EF" data-name="VARIATION SELECTOR-256" title="VARIATION SELECTOR-256 (U+E01EF)"&gt;U+E01EF&lt;/span&gt;&lt;/span&gt; plus &lt;span&gt;&lt;span class="unichar" data-code="180B" data-name="MONGOLIAN FREE VARIATION SELECTOR ONE" title="MONGOLIAN FREE VARIATION SELECTOR ONE (U+180B)"&gt;U+180B&lt;/span&gt;&lt;/span&gt;, &lt;span&gt;&lt;span class="unichar" data-code="180C" data-name="MONGOLIAN FREE VARIATION SELECTOR TWO" title="MONGOLIAN FREE VARIATION SELECTOR TWO (U+180C)"&gt;U+180C&lt;/span&gt;&lt;/span&gt; and &lt;span&gt;&lt;span class="unichar" data-code="180D" data-name="MONGOLIAN FREE VARIATION SELECTOR THREE" title="MONGOLIAN FREE VARIATION SELECTOR THREE (U+180D)"&gt;U+180D&lt;/span&gt;&lt;/span&gt;.&lt;/p&gt;
+&lt;p&gt;They are essential for the Mongolian script, which has different glyph forms
+depending on its position in the word, the gender of the word, what letters
+are nearby, whether or not the word is foreign, and modern vs. traditional
+orthography (&lt;a href="http://babelstone.blogspot.co.uk/2007/06/secret-life-of-variation-selectors.html"&gt;details&lt;/a&gt;).&lt;/p&gt;
+&lt;p&gt;It is anticipated that these will be used to offer variations of glyphs
+unified by Han Unification.&lt;/p&gt;
+&lt;p&gt;They are also used for somewhat more esoteric things, such as &lt;a href="http://www.unicode.org/Public/6.0.0/ucd/StandardizedVariants.html"&gt;serif versions
+of mathematical operators&lt;/a&gt;.&lt;/p&gt;
+&lt;div class="footnote"&gt;
+&lt;hr /&gt;
+&lt;ol&gt;
+&lt;li id="fn:gory"&gt;
+&lt;p&gt;Gory details: &lt;a href="http://www.macchiato.com/unicode/nfc-faq"&gt;http://www.macchiato.com/unicode/nfc-faq&lt;/a&gt;.&amp;nbsp;&lt;a class="footnote-backref" href="#fnref:gory" rev="footnote" title="Jump back to footnote 1 in the text"&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li id="fn:locale"&gt;
+&lt;p&gt;See &lt;a href="https://metacpan.org/module/Unicode::Collate::Locale#A-list-of-tailorable-locales"&gt;Unicode::Collate::Locale&lt;/a&gt; for a full list of locales.&amp;nbsp;&lt;a class="footnote-backref" href="#fnref:locale" rev="footnote" title="Jump back to footnote 2 in the text"&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li id="fn:every"&gt;
+&lt;p&gt;Except surrogates.&amp;nbsp;&lt;a class="footnote-backref" href="#fnref:every" rev="footnote" title="Jump back to footnote 3 in the text"&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li id="fn:bomnote"&gt;
+&lt;p&gt;Although it is called &amp;lsquo;ZERO WIDTH NO-BREAK SPACE&amp;rsquo;, it is more appropriate to use &lt;span&gt;&lt;span class="unichar" data-code="2060" data-name="WORD JOINER" title="WORD JOINER (U+2060)"&gt;U+2060&lt;/span&gt;&lt;span&gt; WORD JOINER&lt;/span&gt;&lt;/span&gt;.&amp;nbsp;&lt;a class="footnote-backref" href="#fnref:bomnote" rev="footnote" title="Jump back to footnote 4 in the text"&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/div&gt;</summary><category term="unicode"></category><category term="faq"></category><category term="perl"></category></entry><entry><title>Three revelations about DateTime (and why simpler is sometimes better)</title><link href="http://richardharr.is/three-revelations-about-datetime-and-why-simpler-is-sometimes-better.html" rel="alternate"></link><updated>2013-04-02T11:00:00+01:00</updated><author><name>Richard Harris</name></author><id>tag:richardharr.is,2013-04-02:three-revelations-about-datetime-and-why-simpler-is-sometimes-better.html</id><summary type="html">&lt;p&gt;&lt;a href="https://metacpan.org/module/DateTime"&gt;DateTime&lt;/a&gt; is an amazing module, and our go-to module at work for any date
+manipulation. It&amp;rsquo;s stable, it handles all the edge cases and it has a nice API.
+Even so, there are some cases where going outside the DateTime ecosystem makes
+your life a lot simpler, and I&amp;rsquo;m going to illustrate one of those times.&lt;/p&gt;
+&lt;h2&gt;The Gap&lt;/h2&gt;
+&lt;p&gt;So I was making a simple tool to go through log files which were prefixed
+with the current time, like so:&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;[2013-04-01 21:03:01 BST] Your mum has exploded!
+[2013-04-01 21:03:02 BST] (CRITICAL) Someone's mum has exploded, aborting
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&amp;hellip;and identify gaps in the log bigger than &lt;em&gt;n&lt;/em&gt; seconds by adding some text:&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;[2013-04-01 21:03:01 BST] Trying to order pizza using bitcoins
+[2013-04-01 21:03:05 BST] Waiting for currency to stabilise...
+--- GAP: 12 years and 96 days ---
+[2025-07-03 11:55:21 BST] Timed out
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Here&amp;rsquo;s my initial take using DateTime (&lt;a href="https://gist.github.com/richardjharris/5288171"&gt;full version&lt;/a&gt;):&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$span&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nn"&gt;DateTime::Format::Human::&lt;/span&gt;&lt;span class="n"&gt;Duration&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="k"&gt;new&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$dtparse&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nn"&gt;DateTime::Format::&lt;/span&gt;&lt;span class="n"&gt;Strptime&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="k"&gt;new&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;...&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+
+&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$prev&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;while&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$line&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="nv"&gt;$line&lt;/span&gt; &lt;span class="o"&gt;=~&lt;/span&gt;&lt;span class="sr"&gt; /^\[ (.*?) \]/x&lt;/span&gt; &lt;span class="ow"&gt;or&lt;/span&gt; &lt;span class="k"&gt;next&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$ts&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nv"&gt;$dtparse&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;parse_datetime&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$1&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$ts&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$prev&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+            &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$delta&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nv"&gt;$ts&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="nv"&gt;$prev&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+            &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$delta&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;in_units&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;'seconds'&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;=&lt;/span&gt; &lt;span class="nv"&gt;$min_gap&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+                &lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="s"&gt;"--- GAP: "&lt;/span&gt; &lt;span class="o"&gt;.&lt;/span&gt; &lt;span class="nv"&gt;$span&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;format_duration_between&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$prev&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$ts&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;.&lt;/span&gt; &lt;span class="s"&gt;" ---\n"&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+            &lt;span class="p"&gt;}&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+        &lt;span class="nv"&gt;$prev&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nv"&gt;$ts&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+    &lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="nv"&gt;$line&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Nifty huh? But this didn&amp;rsquo;t actually do anything. The output of &lt;code&gt;parse_datetime&lt;/code&gt; was
+undefined! After adding some error handling, I discovered &lt;strong&gt;Relevation #1: &lt;abbr title="British Summer Time (or apparently Bangladesh Summer Time)"&gt;BST&lt;/abbr&gt; is ambiguous.&lt;/strong&gt;
+&lt;a href="https://metacpan.org/module/DateTime::Format::Strptime"&gt;DateTime::Format::Strptime&lt;/a&gt; refuses to parse BST because it &lt;em&gt;might&lt;/em&gt; be an abbreviation
+for &amp;ldquo;Bangladesh Summer Time&amp;rdquo; as well as &amp;ldquo;British Summer Time&amp;rdquo;, despite me providing an
+appropriate locale and time zone in the constructor. (A similar issue appears with &lt;abbr title="Eastern Standard Time in the United States (but also Australian Eastern Standard Time)"&gt;EST&lt;/abbr&gt;.)&lt;/p&gt;
+&lt;p&gt;Okay, so I added a quick &lt;code&gt;s/ BST$/+0100/&lt;/code&gt;, &lt;code&gt;s/ GMT$/+0000/&lt;/code&gt; and changed &lt;code&gt;%Z&lt;/code&gt; to &lt;code&gt;%z&lt;/code&gt; in the
+format string and it appeared to work!&lt;sup id="fnref:tz"&gt;&lt;a class="footnote-ref" href="#fn:tz" rel="footnote"&gt;1&lt;/a&gt;&lt;/sup&gt; But due to previous work with DateTime, I had a
+suspicion that it wouldn&amp;rsquo;t recognise gaps of 60 seconds or more.&lt;/p&gt;
+&lt;p&gt;My suspicion was confirmed! Up to 59 seconds, worked fine. 60? No deal. How come? The reason
+is &lt;strong&gt;Relevation #2: minutes cannot be converted into seconds.&lt;/strong&gt; DateTime is a perfectionist
+to a fault, and because of &lt;a href="https://en.wikipedia.org/wiki/leap_seconds"&gt;leap seconds&lt;/a&gt;, a minute may contain 60 or 61 seconds. Because
+this is ambiguous, if you ask for seconds, &lt;code&gt;in_units('seconds')&lt;/code&gt; &lt;em&gt;only&lt;/em&gt; returns the seconds
+part of the duration!&lt;/p&gt;
+&lt;p&gt;Dave Rolsky (the primary author of DateTime!) suggested the &lt;code&gt;subtract_datetime_absolute&lt;/code&gt;
+method as a solution to this problem; this returns a duration object that only includes
+seconds and nanoseconds:&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$delta&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nv"&gt;$ts&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;subtract_datetime_absolute&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$prev&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$delta&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;in_units&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;'seconds'&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;=&lt;/span&gt; &lt;span class="nv"&gt;$min_gap&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt; &lt;span class="o"&gt;...&lt;/span&gt; &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Finally, it was working &amp;hellip; sort of. Processing a 320k line log file took almost four
+minutes! Profiling it showed that most of the time was spent in:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;DateTime::TimeZone::_spans_binary_search&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;Params::Validate::_validate&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;Relevation #3: Time zone calculations are very slow.&lt;/strong&gt;&lt;sup id="fnref:version"&gt;&lt;a class="footnote-ref" href="#fn:version" rel="footnote"&gt;2&lt;/a&gt;&lt;/sup&gt; Since I&amp;rsquo;m not so bothered
+about time zones, can I speed this up?&lt;/p&gt;
+&lt;p&gt;Using &lt;code&gt;set_time_zone&lt;/code&gt; to set &lt;abbr title="Coordinated Universal Time, or +0000."&gt;UTC&lt;/abbr&gt; or floating time zones did not bear fruit; presumably,
+we still perform a time zone conversion for each line. Stripping the timezone and adding an hour
+manually for BST made it take even longer!&lt;/p&gt;
+&lt;p&gt;Curious, I decided to try some other modules, &lt;a href="https://metacpan.org/module/Date::Parse"&gt;Date::Parse&lt;/a&gt; and &lt;a href="https://metacpan.org/module/Time::Duration"&gt;Time::Duration&lt;/a&gt;.
+(I also tried &lt;a href="https://metacpan.org/module/Time::Piece"&gt;Time::Piece&lt;/a&gt;, but its implementation of &lt;code&gt;strptime&lt;/code&gt; complained that
+BST was &amp;ldquo;trailing garbage&amp;rdquo;, even though I specified &lt;code&gt;%Z&lt;/code&gt;).&lt;/p&gt;
+&lt;h2&gt;Take Two&lt;/h2&gt;
+&lt;p&gt;Aside from being smaller, this version processes 320k lines in 18 seconds:&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="nv"&gt;$line&lt;/span&gt; &lt;span class="o"&gt;=~&lt;/span&gt;&lt;span class="sr"&gt; /^\[ ([^\[]+) \]/x&lt;/span&gt; &lt;span class="ow"&gt;or&lt;/span&gt; &lt;span class="k"&gt;next&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$ts&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;str2time&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$1&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;defined&lt;/span&gt; &lt;span class="nv"&gt;$ts&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;defined&lt;/span&gt; &lt;span class="nv"&gt;$prev&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$delta&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nv"&gt;$ts&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="nv"&gt;$prev&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$delta&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;=&lt;/span&gt; &lt;span class="nv"&gt;$min_gap&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+            &lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="s"&gt;"--- GAP: "&lt;/span&gt; &lt;span class="o"&gt;.&lt;/span&gt; &lt;span class="n"&gt;duration&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$delta&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;.&lt;/span&gt; &lt;span class="s"&gt;" ---\n"&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+    &lt;span class="nv"&gt;$prev&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nv"&gt;$ts&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="nv"&gt;$line&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;(&lt;a href="https://gist.github.com/richardjharris/5288203"&gt;full version&lt;/a&gt;)&lt;/p&gt;
+&lt;h2&gt;The Final Cut&lt;/h2&gt;
+&lt;p&gt;&lt;code&gt;str2time&lt;/code&gt; is a heuristic parser; replacing it with a regex brings the time down
+to 3.2 seconds:&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="k"&gt;sub &lt;/span&gt;&lt;span class="nf"&gt;parse_date&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$line&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;shift&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="nv"&gt;$line&lt;/span&gt; &lt;span class="o"&gt;=~&lt;/span&gt;&lt;span class="sr"&gt; /^\[(\d\d\d\d)-(\d\d)-(\d\d) (\d\d):(\d\d):(\d\d) (\w+)/&lt;/span&gt; &lt;span class="ow"&gt;or&lt;/span&gt; &lt;span class="k"&gt;return&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;mktime&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$6&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$5&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$4&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$3&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$2&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$1&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="mi"&gt;1900&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$7&lt;/span&gt; &lt;span class="ow"&gt;eq&lt;/span&gt; &lt;span class="s"&gt;'BST'&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Ugly, but fast.&lt;/p&gt;
+&lt;h2&gt;Conclusion&lt;/h2&gt;
+&lt;p&gt;Performance is always at odds with flexibility. &lt;a href="https://metacpan.org/module/DateTime"&gt;DateTime&lt;/a&gt; tries extremely hard
+to account for daylight savings, timezones and leap seconds; this level of rigorous
+precision may not be appropriate for your application. On the other hand, most
+applications do not care about the performance of date calculations.&lt;/p&gt;
+&lt;p&gt;Dates and times can get very, very complex. Read the docs of your chosen module
+and be aware of edge cases (like &lt;code&gt;in_units&lt;/code&gt; refusing to convert from minutes to
+seconds) before they bite you.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;h2&gt;Bonus!&lt;/h2&gt;
+&lt;p&gt;Let&amp;rsquo;s see how well these versions cope with the &lt;a href="https://en.wikipedia.org/wiki/Year_2038_problem"&gt;Year 2038 problem&lt;/a&gt;!&lt;/p&gt;
+&lt;p&gt;Input:&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;[2013-04-01 21:03:01 BST] Taking a trip to the year 3000...
+[2013-04-01 21:03:01 BST] (not much has changed but they live underwater)
+[3000-01-01 00:00:00 BST] Your great, great great grand daughter is: pretty fine
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;DateTime performs impeccably, although it does take about 4 seconds, because it has
+to do time zone calculations spanning 1,000 years.&lt;sup id="fnref:span"&gt;&lt;a class="footnote-ref" href="#fn:span" rel="footnote"&gt;3&lt;/a&gt;&lt;/sup&gt;&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;[2013-04-01 21:03:01 BST] Taking a trip to the year 3000...
+[2013-04-01 21:03:01 BST] (not much has changed but they live underwater)
+--- GAP: 986 years, 8 months, 4 weeks, 2 days, 1 hour, 56 minutes, and 59 seconds ---
+[3000-01-01 00:00:00 BST] Your great, great great grand daughter is: pretty fine
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Date::Parse is not having fun, because Perl &amp;lt; 5.12.0 has 32-bit times: &lt;sup id="fnref:perl512"&gt;&lt;a class="footnote-ref" href="#fn:perl512" rel="footnote"&gt;4&lt;/a&gt;&lt;/sup&gt;&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;Day too small - -317761 &amp;gt; -24856
+Sec too small - -317761 &amp;lt; 74752
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Ugly regex version:&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;[2013-04-01 21:03:01 BST] Taking a trip to the year 3000...
+[2013-04-01 21:03:01 BST] (not much has changed but they live underwater)
+--- GAP: 987 years and 149 days ---
+[3000-01-01 00:00:00 BST] Your great, great great grand daughter is: pretty fine
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;strong&gt;Ugly regex wins!&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;(Sadly, that&amp;rsquo;s been the case more often than I&amp;rsquo;d like to admit&amp;hellip;)&lt;/p&gt;
+&lt;div class="footnote"&gt;
+&lt;hr /&gt;
+&lt;ol&gt;
+&lt;li id="fn:tz"&gt;
+&lt;p&gt;As I live in the United Kingdom, these logs are only going to be in either BST or &lt;abbr title="Greenwich Mean Time (used in Commonwealth countries to refer to UTC)"&gt;GMT&lt;/abbr&gt; depending on the time of year.&amp;nbsp;&lt;a class="footnote-backref" href="#fnref:tz" rev="footnote" title="Jump back to footnote 1 in the text"&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li id="fn:version"&gt;
+&lt;p&gt;CentOS 5 provides DateTime version 0.41. I tested version 1.01, but it did not show a notable speed improvement.&amp;nbsp;&lt;a class="footnote-backref" href="#fnref:version" rev="footnote" title="Jump back to footnote 2 in the text"&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li id="fn:span"&gt;
+&lt;p&gt;This is explicitly mentioned in the perldoc; the workaround is to use UTC/floating.&amp;nbsp;&lt;a class="footnote-backref" href="#fnref:span" rev="footnote" title="Jump back to footnote 3 in the text"&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li id="fn:perl512"&gt;
+&lt;p&gt;It works great on newer Perls, but CentOS probably won&amp;rsquo;t have upgraded to 5.12 by 2038 :)&amp;nbsp;&lt;a class="footnote-backref" href="#fnref:perl512" rev="footnote" title="Jump back to footnote 4 in the text"&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/div&gt;</summary><category term="perl"></category><category term="datetime"></category></entry><entry><title>Exposing git committer habits with ANSI::Heatmap</title><link href="http://richardharr.is/exposing-git-committer-habits-with-ansiheatmap.html" rel="alternate"></link><updated>2013-03-23T22:02:00+00:00</updated><author><name>Richard Harris</name></author><id>tag:richardharr.is,2013-03-23:exposing-git-committer-habits-with-ansiheatmap.html</id><summary type="html">&lt;p&gt;I&amp;rsquo;ve released a new module to CPAN, &lt;a href="https://metacpan.org/module/ANSI::Heatmap"&gt;ANSI::Heatmap&lt;/a&gt;. It makes pretty heatmaps for
+your console application, like this:&lt;/p&gt;
+&lt;p style="text-align: center; font-style: italic"&gt;&lt;img alt="Sample heatmap output" src="http://richardharr.is/static/images/heatmap.png" title="Sample heatmap output" /&gt;&lt;br /&gt;
+Names changed to protect the innocent&lt;/p&gt;
+&lt;p&gt;The x-axis is hour (0-23) and the y-axis is day of week (Mon-Sun) of the &lt;em&gt;local&lt;/em&gt;
+git commit time, correcting for timezone.&lt;/p&gt;
+&lt;p&gt;I wrote a quick Perl script to call &lt;code&gt;git log&lt;/code&gt; and process the dates:&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="c1"&gt;#!/usr/bin/perl&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="n"&gt;strict&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="n"&gt;warnings&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="nn"&gt;ANSI::&lt;/span&gt;&lt;span class="n"&gt;Heatmap&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+
+&lt;span class="nv"&gt;@ARGV&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="mi"&gt;2&lt;/span&gt; &lt;span class="ow"&gt;or&lt;/span&gt; &lt;span class="nb"&gt;die&lt;/span&gt; &lt;span class="s"&gt;"usage: $0 repo author"&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$opt_repo&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$opt_author&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nv"&gt;@ARGV&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$i&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;%day2idx&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;map&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt; &lt;span class="nv"&gt;$_&lt;/span&gt; &lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="nv"&gt;$i&lt;/span&gt;&lt;span class="o"&gt;++&lt;/span&gt; &lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="sx"&gt;qw(Mon Tue Wed Thu Fri Sat Sun)&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$map&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nn"&gt;ANSI::&lt;/span&gt;&lt;span class="n"&gt;Heatmap&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="k"&gt;new&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;min_x&lt;/span&gt; &lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;max_x&lt;/span&gt; &lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;23&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;min_y&lt;/span&gt; &lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;max_y&lt;/span&gt; &lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;6&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;half&lt;/span&gt; &lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+
+&lt;span class="nb"&gt;chdir&lt;/span&gt; &lt;span class="nv"&gt;$opt_repo&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="nb"&gt;open&lt;/span&gt; &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$log&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;'-|'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;'git'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;'log'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;'--no-merges'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;'--remove-empty'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="s"&gt;'--format=%cD'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;'--author'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$opt_author&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;span class="k"&gt;while&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="sr"&gt;&amp;lt;$log&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="sr"&gt;/\A(\w+), \d+ \w+ \d+ (\d+):\d+:\d+ [+-]\d+\Z/&lt;/span&gt; &lt;span class="ow"&gt;or&lt;/span&gt; &lt;span class="nb"&gt;die&lt;/span&gt; &lt;span class="s"&gt;"invalid line '$_'"&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$day&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$hour&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$2&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+    &lt;span class="nv"&gt;$day&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nv"&gt;$day2idx&lt;/span&gt;&lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="nv"&gt;$day&lt;/span&gt;&lt;span class="p"&gt;};&lt;/span&gt; &lt;span class="nb"&gt;defined&lt;/span&gt; &lt;span class="nv"&gt;$day&lt;/span&gt; &lt;span class="ow"&gt;or&lt;/span&gt; &lt;span class="nb"&gt;die&lt;/span&gt; &lt;span class="s"&gt;"Invalid day"&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="nv"&gt;$map&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;inc&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$hour&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$day&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+
+&lt;span class="nb"&gt;binmode&lt;/span&gt; &lt;span class="bp"&gt;STDOUT&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;':utf8'&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="nv"&gt;$map&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;For a fancier output, you need to split the heatmaps by line and stack them
+together horizontally; &lt;a href="https://metacpan.org/source/RJH/ANSI-Heatmap-0.2/examples/git.pl"&gt;here is the source&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;I&amp;rsquo;d love to see what other people do with this code!&lt;/p&gt;</summary><category term="perl"></category><category term="git"></category><category term="heatmap"></category><category term="cpan"></category></entry></feed>

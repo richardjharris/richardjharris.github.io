@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+        <title>Three revelations about DateTime (and why simpler is sometimes better)</title>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" href="./theme/css/main.css" type="text/css" />
+                <link href="http://richardharr.is/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="richardharr.is Atom Feed" />
+                
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+        <script src="./theme/js/jquery.simpletip-1.3.1.min.js" type="text/javascript" /></script>
+        <script src="./theme/js/unicode-tooltips.js" type="text/javascript" /></script>
+
+        <!--[if IE]>
+                <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+
+        <!--[if lte IE 7]>
+                <link rel="stylesheet" type="text/css" media="all" href="./css/ie.css"/>
+                <script src="./js/IE8.js" type="text/javascript"></script><![endif]-->
+
+        <!--[if lt IE 7]>
+                <link rel="stylesheet" type="text/css" media="all" href="./css/ie6.css"/><![endif]-->
+
+</head>
+
+<body id="index" class="home">
+        <header id="banner" class="body">
+                <h1><a href="./">richardharr.is </a></h1>
+                <!--<nav><ul>
+                                                                                                    <li ><a href="./category/japanese.html">Japanese</a></li>
+                                    <li class="active"><a href="./category/perl.html">Perl</a></li>
+                                    <li ><a href="./category/unicode.html">Unicode</a></li>
+                                </ul></nav>-->
+        </header><!-- /#banner -->
+        <section id="content" class="body">
+  <article>
+    <header>
+      <h1 class="entry-title">
+        <a href="./three-revelations-about-datetime-and-why-simpler-is-sometimes-better.html" rel="bookmark"
+           title="Permalink to Three revelations about DateTime (and why simpler is sometimes better)">Three revelations about DateTime (and why simpler is sometimes better)</a></h1>
+      <a href="http://twitter.com/share" class="twitter-share-button" data-count="horizontal" data-via="_rjh">Tweet</a><script type="text/javascript" src="http://platform.twitter.com/widgets.js"></script>
+    </header>
+
+    <div class="entry-content">
+      <footer class="post-info">
+        <abbr class="published" title="2013-04-02T11:00:00">
+                02 Apr 2013
+        </abbr>
+
+                <address class="vcard author">
+                By <a class="url fn" href="./author/richard-harris.html">Richard Harris</a>
+        </address>
+        <p>In <a href="./category/perl.html">Perl</a>. </p>
+<p>tags: <a href="./tag/perl.html">perl</a>, <a href="./tag/datetime.html">datetime</a></p>
+</footer><!-- /.post-info -->      <p><a href="https://metacpan.org/module/DateTime">DateTime</a> is an amazing module, and our go-to module at work for any date
+manipulation. It&rsquo;s stable, it handles all the edge cases and it has a nice API.
+Even so, there are some cases where going outside the DateTime ecosystem makes
+your life a lot simpler, and I&rsquo;m going to illustrate one of those times.</p>
+<h2>The Gap</h2>
+<p>So I was making a simple tool to go through log files which were prefixed
+with the current time, like so:</p>
+<div class="codehilite"><pre>[2013-04-01 21:03:01 BST] Your mum has exploded!
+[2013-04-01 21:03:02 BST] (CRITICAL) Someone's mum has exploded, aborting
+</pre></div>
+
+
+<p>&hellip;and identify gaps in the log bigger than <em>n</em> seconds by adding some text:</p>
+<div class="codehilite"><pre>[2013-04-01 21:03:01 BST] Trying to order pizza using bitcoins
+[2013-04-01 21:03:05 BST] Waiting for currency to stabilise...
+--- GAP: 12 years and 96 days ---
+[2025-07-03 11:55:21 BST] Timed out
+</pre></div>
+
+
+<p>Here&rsquo;s my initial take using DateTime (<a href="https://gist.github.com/richardjharris/5288171">full version</a>):</p>
+<div class="codehilite"><pre><span class="k">my</span> <span class="nv">$span</span> <span class="o">=</span> <span class="nn">DateTime::Format::Human::</span><span class="n">Duration</span><span class="o">-&gt;</span><span class="k">new</span><span class="p">;</span>
+<span class="k">my</span> <span class="nv">$dtparse</span> <span class="o">=</span> <span class="nn">DateTime::Format::</span><span class="n">Strptime</span><span class="o">-&gt;</span><span class="k">new</span><span class="p">(</span><span class="o">...</span><span class="p">);</span>
+
+<span class="k">my</span> <span class="nv">$prev</span><span class="p">;</span>
+<span class="k">while</span> <span class="p">(</span><span class="k">my</span> <span class="nv">$line</span> <span class="o">=</span> <span class="o">&lt;&gt;</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nv">$line</span> <span class="o">=~</span><span class="sr"> /^\[ (.*?) \]/x</span> <span class="ow">or</span> <span class="k">next</span><span class="p">;</span>
+    <span class="k">my</span> <span class="nv">$ts</span> <span class="o">=</span> <span class="nv">$dtparse</span><span class="o">-&gt;</span><span class="n">parse_datetime</span><span class="p">(</span><span class="nv">$1</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nv">$ts</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nv">$prev</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">my</span> <span class="nv">$delta</span> <span class="o">=</span> <span class="nv">$ts</span> <span class="o">-</span> <span class="nv">$prev</span><span class="p">;</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nv">$delta</span><span class="o">-&gt;</span><span class="n">in_units</span><span class="p">(</span><span class="s">'seconds'</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="nv">$min_gap</span><span class="p">)</span> <span class="p">{</span>
+                <span class="k">print</span> <span class="s">"--- GAP: "</span> <span class="o">.</span> <span class="nv">$span</span><span class="o">-&gt;</span><span class="n">format_duration_between</span><span class="p">(</span><span class="nv">$prev</span><span class="p">,</span> <span class="nv">$ts</span><span class="p">)</span> <span class="o">.</span> <span class="s">" ---\n"</span><span class="p">;</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+        <span class="nv">$prev</span> <span class="o">=</span> <span class="nv">$ts</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="k">print</span> <span class="nv">$line</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Nifty huh? But this didn&rsquo;t actually do anything. The output of <code>parse_datetime</code> was
+undefined! After adding some error handling, I discovered <strong>Relevation #1: <abbr title="British Summer Time (or apparently Bangladesh Summer Time)">BST</abbr> is ambiguous.</strong>
+<a href="https://metacpan.org/module/DateTime::Format::Strptime">DateTime::Format::Strptime</a> refuses to parse BST because it <em>might</em> be an abbreviation
+for &ldquo;Bangladesh Summer Time&rdquo; as well as &ldquo;British Summer Time&rdquo;, despite me providing an
+appropriate locale and time zone in the constructor. (A similar issue appears with <abbr title="Eastern Standard Time in the United States (but also Australian Eastern Standard Time)">EST</abbr>.)</p>
+<p>Okay, so I added a quick <code>s/ BST$/+0100/</code>, <code>s/ GMT$/+0000/</code> and changed <code>%Z</code> to <code>%z</code> in the
+format string and it appeared to work!<sup id="fnref:tz"><a class="footnote-ref" href="#fn:tz" rel="footnote">1</a></sup> But due to previous work with DateTime, I had a
+suspicion that it wouldn&rsquo;t recognise gaps of 60 seconds or more.</p>
+<p>My suspicion was confirmed! Up to 59 seconds, worked fine. 60? No deal. How come? The reason
+is <strong>Relevation #2: minutes cannot be converted into seconds.</strong> DateTime is a perfectionist
+to a fault, and because of <a href="https://en.wikipedia.org/wiki/leap_seconds">leap seconds</a>, a minute may contain 60 or 61 seconds. Because
+this is ambiguous, if you ask for seconds, <code>in_units('seconds')</code> <em>only</em> returns the seconds
+part of the duration!</p>
+<p>Dave Rolsky (the primary author of DateTime!) suggested the <code>subtract_datetime_absolute</code>
+method as a solution to this problem; this returns a duration object that only includes
+seconds and nanoseconds:</p>
+<div class="codehilite"><pre><span class="k">my</span> <span class="nv">$delta</span> <span class="o">=</span> <span class="nv">$ts</span><span class="o">-&gt;</span><span class="n">subtract_datetime_absolute</span><span class="p">(</span><span class="nv">$prev</span><span class="p">);</span>
+<span class="k">if</span> <span class="p">(</span><span class="nv">$delta</span><span class="o">-&gt;</span><span class="n">in_units</span><span class="p">(</span><span class="s">'seconds'</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="nv">$min_gap</span><span class="p">)</span> <span class="p">{</span> <span class="o">...</span> <span class="p">}</span>
+</pre></div>
+
+
+<p>Finally, it was working &hellip; sort of. Processing a 320k line log file took almost four
+minutes! Profiling it showed that most of the time was spent in:</p>
+<ul>
+<li><code>DateTime::TimeZone::_spans_binary_search</code></li>
+<li><code>Params::Validate::_validate</code></li>
+</ul>
+<p><strong>Relevation #3: Time zone calculations are very slow.</strong><sup id="fnref:version"><a class="footnote-ref" href="#fn:version" rel="footnote">2</a></sup> Since I&rsquo;m not so bothered
+about time zones, can I speed this up?</p>
+<p>Using <code>set_time_zone</code> to set <abbr title="Coordinated Universal Time, or +0000.">UTC</abbr> or floating time zones did not bear fruit; presumably,
+we still perform a time zone conversion for each line. Stripping the timezone and adding an hour
+manually for BST made it take even longer!</p>
+<p>Curious, I decided to try some other modules, <a href="https://metacpan.org/module/Date::Parse">Date::Parse</a> and <a href="https://metacpan.org/module/Time::Duration">Time::Duration</a>.
+(I also tried <a href="https://metacpan.org/module/Time::Piece">Time::Piece</a>, but its implementation of <code>strptime</code> complained that
+BST was &ldquo;trailing garbage&rdquo;, even though I specified <code>%Z</code>).</p>
+<h2>Take Two</h2>
+<p>Aside from being smaller, this version processes 320k lines in 18 seconds:</p>
+<div class="codehilite"><pre><span class="nv">$line</span> <span class="o">=~</span><span class="sr"> /^\[ ([^\[]+) \]/x</span> <span class="ow">or</span> <span class="k">next</span><span class="p">;</span>
+<span class="k">my</span> <span class="nv">$ts</span> <span class="o">=</span> <span class="n">str2time</span><span class="p">(</span><span class="nv">$1</span><span class="p">);</span>
+<span class="k">if</span> <span class="p">(</span><span class="nb">defined</span> <span class="nv">$ts</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">defined</span> <span class="nv">$prev</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">my</span> <span class="nv">$delta</span> <span class="o">=</span> <span class="nv">$ts</span> <span class="o">-</span> <span class="nv">$prev</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nv">$delta</span> <span class="o">&gt;=</span> <span class="nv">$min_gap</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">print</span> <span class="s">"--- GAP: "</span> <span class="o">.</span> <span class="n">duration</span><span class="p">(</span><span class="nv">$delta</span><span class="p">)</span> <span class="o">.</span> <span class="s">" ---\n"</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="nv">$prev</span> <span class="o">=</span> <span class="nv">$ts</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="k">print</span> <span class="nv">$line</span><span class="p">;</span>
+</pre></div>
+
+
+<p>(<a href="https://gist.github.com/richardjharris/5288203">full version</a>)</p>
+<h2>The Final Cut</h2>
+<p><code>str2time</code> is a heuristic parser; replacing it with a regex brings the time down
+to 3.2 seconds:</p>
+<div class="codehilite"><pre><span class="k">sub </span><span class="nf">parse_date</span> <span class="p">{</span>
+    <span class="k">my</span> <span class="nv">$line</span> <span class="o">=</span> <span class="nb">shift</span><span class="p">;</span>
+    <span class="nv">$line</span> <span class="o">=~</span><span class="sr"> /^\[(\d\d\d\d)-(\d\d)-(\d\d) (\d\d):(\d\d):(\d\d) (\w+)/</span> <span class="ow">or</span> <span class="k">return</span><span class="p">;</span>
+    <span class="k">return</span> <span class="n">mktime</span><span class="p">(</span><span class="nv">$6</span><span class="p">,</span> <span class="nv">$5</span><span class="p">,</span> <span class="nv">$4</span><span class="p">,</span> <span class="nv">$3</span><span class="p">,</span> <span class="nv">$2</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="nv">$1</span> <span class="o">-</span> <span class="mi">1900</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nv">$7</span> <span class="ow">eq</span> <span class="s">'BST'</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Ugly, but fast.</p>
+<h2>Conclusion</h2>
+<p>Performance is always at odds with flexibility. <a href="https://metacpan.org/module/DateTime">DateTime</a> tries extremely hard
+to account for daylight savings, timezones and leap seconds; this level of rigorous
+precision may not be appropriate for your application. On the other hand, most
+applications do not care about the performance of date calculations.</p>
+<p>Dates and times can get very, very complex. Read the docs of your chosen module
+and be aware of edge cases (like <code>in_units</code> refusing to convert from minutes to
+seconds) before they bite you.</p>
+<hr />
+<h2>Bonus!</h2>
+<p>Let&rsquo;s see how well these versions cope with the <a href="https://en.wikipedia.org/wiki/Year_2038_problem">Year 2038 problem</a>!</p>
+<p>Input:</p>
+<div class="codehilite"><pre>[2013-04-01 21:03:01 BST] Taking a trip to the year 3000...
+[2013-04-01 21:03:01 BST] (not much has changed but they live underwater)
+[3000-01-01 00:00:00 BST] Your great, great great grand daughter is: pretty fine
+</pre></div>
+
+
+<p>DateTime performs impeccably, although it does take about 4 seconds, because it has
+to do time zone calculations spanning 1,000 years.<sup id="fnref:span"><a class="footnote-ref" href="#fn:span" rel="footnote">3</a></sup></p>
+<div class="codehilite"><pre>[2013-04-01 21:03:01 BST] Taking a trip to the year 3000...
+[2013-04-01 21:03:01 BST] (not much has changed but they live underwater)
+--- GAP: 986 years, 8 months, 4 weeks, 2 days, 1 hour, 56 minutes, and 59 seconds ---
+[3000-01-01 00:00:00 BST] Your great, great great grand daughter is: pretty fine
+</pre></div>
+
+
+<p>Date::Parse is not having fun, because Perl &lt; 5.12.0 has 32-bit times: <sup id="fnref:perl512"><a class="footnote-ref" href="#fn:perl512" rel="footnote">4</a></sup></p>
+<div class="codehilite"><pre>Day too small - -317761 &gt; -24856
+Sec too small - -317761 &lt; 74752
+</pre></div>
+
+
+<p>Ugly regex version:</p>
+<div class="codehilite"><pre>[2013-04-01 21:03:01 BST] Taking a trip to the year 3000...
+[2013-04-01 21:03:01 BST] (not much has changed but they live underwater)
+--- GAP: 987 years and 149 days ---
+[3000-01-01 00:00:00 BST] Your great, great great grand daughter is: pretty fine
+</pre></div>
+
+
+<p><strong>Ugly regex wins!</strong></p>
+<p>(Sadly, that&rsquo;s been the case more often than I&rsquo;d like to admit&hellip;)</p>
+<div class="footnote">
+<hr />
+<ol>
+<li id="fn:tz">
+<p>As I live in the United Kingdom, these logs are only going to be in either BST or <abbr title="Greenwich Mean Time (used in Commonwealth countries to refer to UTC)">GMT</abbr> depending on the time of year.&nbsp;<a class="footnote-backref" href="#fnref:tz" rev="footnote" title="Jump back to footnote 1 in the text">&#8617;</a></p>
+</li>
+<li id="fn:version">
+<p>CentOS 5 provides DateTime version 0.41. I tested version 1.01, but it did not show a notable speed improvement.&nbsp;<a class="footnote-backref" href="#fnref:version" rev="footnote" title="Jump back to footnote 2 in the text">&#8617;</a></p>
+</li>
+<li id="fn:span">
+<p>This is explicitly mentioned in the perldoc; the workaround is to use UTC/floating.&nbsp;<a class="footnote-backref" href="#fnref:span" rev="footnote" title="Jump back to footnote 3 in the text">&#8617;</a></p>
+</li>
+<li id="fn:perl512">
+<p>It works great on newer Perls, but CentOS probably won&rsquo;t have upgraded to 5.12 by 2038 :)&nbsp;<a class="footnote-backref" href="#fnref:perl512" rev="footnote" title="Jump back to footnote 4 in the text">&#8617;</a></p>
+</li>
+</ol>
+</div>
+    </div><!-- /.entry-content -->
+        <div class="comments">
+      <h2>Comments !</h2>
+      <div id="disqus_thread"></div>
+      <script type="text/javascript">
+        var disqus_identifier = "three-revelations-about-datetime-and-why-simpler-is-sometimes-better.html";
+        (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://richardharris.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+      </script>
+    </div>
+    
+  </article>
+</section>
+        <section id="extras" class="body">
+                        <div class="social">
+                        <h2>social</h2>
+                        <ul>
+                            <li><a href="http://richardharr.is/feeds/all.atom.xml" type="application/atom+xml" rel="alternate">atom feed</a></li>
+                            
+                                                    <li><a href="https://www.fitocracy.com/profile/rjh/">Fitocracy</a></li>
+                                                    <li><a href="https://github.com/richardjharris/">GitHub</a></li>
+                                                    <li><a href="https://stackoverflow.com/users/74496/rjh">StackOverflow</a></li>
+                                                    <li><a href="https://www.flickr.com/photos/richardjharris/">Flickr</a></li>
+                                                    <li><a href="https://www.linkedin.com/profile/view?id=117798931">LinkedIn</a></li>
+                                                    <li><a href="https://twitter.com/_rjh">@_rjh</a></li>
+                                                </ul>
+                </div><!-- /.social -->
+                                <div class="blogroll">
+                        <h2>blogroll</h2>
+                        <ul>
+                                                    <li><a href="http://news.netcraft.com">Netcraft News</a></li>
+                                                    <li><a href="http://blog.peter-r.co.uk">Peter R's Blog</a></li>
+                                                    <li><a href="http://incoherency.co.uk/">incoherency.co.uk</a></li>
+                                                    <li><a href="http://ben.dartoxia.com/">Dartoxia.com</a></li>
+                                                    <li><a href="http://ferozsalam.com/">Feroz Salam</a></li>
+                                                    <li><a href="http://www.adanscotney.com/">Adan's Food Blog</a></li>
+                                                    <li><a href="http://jon.isbell.net/">Jon Isbell</a></li>
+                                                    <li><a href="http://jes.xxx/blog/">Jes's Blog</a></li>
+                                                </ul>
+                        <ul style="clear: left">
+                        <li href="http://stackoverflow.com/users/74496/rjh">
+                          <img src="http://stackoverflow.com/users/flair/74496.png" width="208" height="58" alt="profile for rjh at Stack Overflow, Q&amp;A for professional and enthusiast programmers" title="profile for rjh at Stack Overflow, Q&amp;A for professional and enthusiast programmers">
+                        </li>
+                        </ul>
+                    </div>
+                </div><!-- /.blogroll -->
+                </section><!-- /#extras -->
+
+        <footer id="contentinfo" class="body">
+           <p>Powered by <a href="http://getpelican.com/">Pelican</a> <b>&middot;</b> Theme by <a href="http://coding.smashingmagazine.com/2009/08/04/designing-a-html-5-layout-from-scratch/">Smashing Magazine</a></p>
+        </footer>
+
+    <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-38981161-1']);
+    _gaq.push(['_trackPageview']);
+    (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+    </script>
+<script type="text/javascript">
+    var disqus_shortname = 'richardharris';
+    (function () {
+        var s = document.createElement('script'); s.async = true;
+        s.type = 'text/javascript';
+        s.src = 'http://' + disqus_shortname + '.disqus.com/count.js';
+        (document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
+    }());
+</script>
+</body>
+</html>

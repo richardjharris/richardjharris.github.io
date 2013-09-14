@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"><title>richardharr.is</title><link href="http://richardharr.is/" rel="alternate"></link><link href="http://richardharr.is/feeds/japanese.atom.xml" rel="self"></link><id>http://richardharr.is/</id><updated>2013-09-13T12:00:00+01:00</updated><entry><title>Viewing English and Japanese subtitles at the same time</title><link href="http://richardharr.is/viewing-english-and-japanese-subtitles-at-the-same-time.html" rel="alternate"></link><updated>2013-09-13T12:00:00+01:00</updated><author><name>Richard Harris</name></author><id>tag:richardharr.is,2013-09-13:viewing-english-and-japanese-subtitles-at-the-same-time.html</id><summary type="html">&lt;p&gt;On Linux I don&amp;rsquo;t know of any good media players that&amp;rsquo;ll show multiple
+subtitles together, which poses a problem if you want to watch with subs
+in both the language you&amp;rsquo;re learning and your native tongue.&lt;/p&gt;
+&lt;p&gt;Fortunately the &lt;i&gt;un&lt;/i&gt;fortunately-named ASS format supports displaying
+more than one sub at a time, and we can use that to get a result like this:&lt;/p&gt;
+&lt;p style="text-align: center"&gt;&lt;img alt="EN/JP subs together" src="http://richardharr.is/static/images/enjp-subs.jpg" /&gt;&lt;/p&gt;
+&lt;h2&gt;The method&lt;/h2&gt;
+&lt;p&gt;In my case, I had a bunch of Japanese subs in .srt format, and English
+subs in .ass format. The approach is simple: for each video,&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Create a new .ass layer called &amp;lsquo;Japanese&amp;rsquo; alongside default.&lt;/li&gt;
+&lt;li&gt;Change the layer alignments to put one at the top, one at the bottom.&lt;/li&gt;
+&lt;li&gt;Parse the .srt to extract subtitle lines and timings.&lt;/li&gt;
+&lt;li&gt;Generate equivalent lines in .ass format, and shove them on the end
+   of the existing file, using the new &amp;lsquo;Japanese&amp;rsquo; layer.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;.ass is a great format because subs don&amp;rsquo;t have to be ordered by time
+or anything. The only snafu is that there are two formats (&amp;lsquo;v4&amp;rsquo; and &amp;lsquo;v4+&amp;rsquo;)
+which have completely different alignment values (e.g. &amp;lsquo;2&amp;rsquo; might correspond
+to &amp;lsquo;bottom left&amp;rsquo; for one format, but &amp;lsquo;top centre&amp;rsquo; for another). So we also
+upgrade any v4 subs to v4+ for sanity reasons.&lt;/p&gt;
+&lt;h2&gt;The goods&lt;/h2&gt;
+&lt;p&gt;Here is an example set of subs for &amp;#26085;&amp;#26412;&amp;#20154;&amp;#12398;&amp;#30693;&amp;#12425;&amp;#12394;&amp;#12356;&amp;#26085;&amp;#26412;&amp;#35486; (&amp;ldquo;Japanese that
+Japanese people don&amp;rsquo;t know&amp;rdquo;):&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href="http://richardharr.is/static/downloads/Nihonjin_no_Shiranai_Nihongo_enjp.zip"&gt;Download ZIP&lt;/a&gt; (263 KB)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;The script&lt;/h2&gt;
+&lt;p&gt;Here is the script I wrote; it&amp;rsquo;s pretty specific to one set of subs, but I
+may expand it once I have tried a few other shows.&lt;/p&gt;
+&lt;div class="codehilite"&gt;&lt;pre&gt;&lt;span class="c1"&gt;#!/usr/bin/perl&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="n"&gt;strict&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="n"&gt;warnings&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="n"&gt;autodie&lt;/span&gt; &lt;span class="s"&gt;':io'&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="n"&gt;utf8&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="nb"&gt;open&lt;/span&gt; &lt;span class="s"&gt;':std'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;':encoding(UTF-8)'&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="nn"&gt;File::&lt;/span&gt;&lt;span class="n"&gt;Temp&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;use&lt;/span&gt; &lt;span class="nn"&gt;File::&lt;/span&gt;&lt;span class="n"&gt;Copy&lt;/span&gt; &lt;span class="sx"&gt;qw(move)&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+
+&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$JP_SPACE&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;'&amp;#12288;'&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$JP_STYLE&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;'Style:Japanese,Arial,24,&amp;amp;H00FFEEEE,&amp;amp;H000000FF,&amp;amp;H00000000,&amp;amp;H00000000,0,0,0,0,100,100,0,0,1,2,1,2,10,10,10,1\n'&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+
+&lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$episode&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="sx"&gt;qw(01 02 03 04 05 06 07 08 09 10 11)&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;'12 finale'&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$base&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;"Nihonjin no Shiranai Nihongo ep$episode (704x396 XviD)"&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="n"&gt;convert&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;"$base.ass"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;"$base.jp.srt"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;"enjp-$base.ass"&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+
+&lt;span class="k"&gt;sub &lt;/span&gt;&lt;span class="nf"&gt;convert&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$ass&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$srt&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$out&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nv"&gt;@_&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="nb"&gt;open&lt;/span&gt; &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$assfh&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;'&amp;lt;:utf8'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$ass&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="nb"&gt;open&lt;/span&gt; &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$srtfh&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;'&amp;lt;:utf8'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$srt&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$outfh&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nn"&gt;File::&lt;/span&gt;&lt;span class="n"&gt;Temp&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="k"&gt;new&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="nb"&gt;binmode&lt;/span&gt; &lt;span class="nv"&gt;$outfh&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;':utf8'&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+
+    &lt;span class="c1"&gt;# Read .ass file and add Japanese style&lt;/span&gt;
+    &lt;span class="k"&gt;while&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="sr"&gt;&amp;lt;$assfh&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="sr"&gt;/^Style:\s*Default/&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+            &lt;span class="c1"&gt;# Change alignment from middle-bottom to middle-top and adjust border&lt;/span&gt;
+            &lt;span class="sr"&gt;s/2,2,2/2,1,8/&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+        &lt;span class="c1"&gt;# Upgrade to v4+ for sanity reasons - alignment numbers different between v4 and v4+&lt;/span&gt;
+        &lt;span class="sr"&gt;s/v4\.00(?!\+)/v4.00+/i&lt;/span&gt; &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="sr"&gt;/^ScriptType:/i&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="sr"&gt;s/V4/V4+/i&lt;/span&gt; &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="sr"&gt;/\[V4 Styles\]/i&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="nv"&gt;$outfh&lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="nv"&gt;$_&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="sr"&gt;/^Style:\s*Default/&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+            &lt;span class="k"&gt;print&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="nv"&gt;$outfh&lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="nv"&gt;$JP_STYLE&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+
+    &lt;span class="c1"&gt;# Now add Japanese lines&lt;/span&gt;
+    &lt;span class="k"&gt;while&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="sr"&gt;&amp;lt;$srtfh&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+        &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$num&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nv"&gt;$_&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="c1"&gt;# A byte-order mark? Get out with yez&lt;/span&gt;
+        &lt;span class="nv"&gt;$num&lt;/span&gt; &lt;span class="o"&gt;=~&lt;/span&gt; &lt;span class="sr"&gt;s/^\x{FEFF}//&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="nv"&gt;$num&lt;/span&gt; &lt;span class="o"&gt;=~&lt;/span&gt;&lt;span class="sr"&gt; /^\d+\r?\n$/&lt;/span&gt; &lt;span class="ow"&gt;or&lt;/span&gt; &lt;span class="nb"&gt;die&lt;/span&gt; &lt;span class="s"&gt;"can't parse '$_'"&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$timings&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="sr"&gt;&amp;lt;$srtfh&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="nv"&gt;$timings&lt;/span&gt; &lt;span class="o"&gt;=~&lt;/span&gt;&lt;span class="sr"&gt; /^(.*?) --&amp;gt; (.*?)\r?\n$/&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$start&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$end&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$2&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+        &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;@lines&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="k"&gt;while&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="sr"&gt;&amp;lt;$srtfh&amp;gt;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+            &lt;span class="sr"&gt;s/\r?\n//g&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+            &lt;span class="k"&gt;last&lt;/span&gt; &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="o"&gt;!&lt;/span&gt;&lt;span class="nv"&gt;$_&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+            &lt;span class="nb"&gt;push&lt;/span&gt; &lt;span class="nv"&gt;@lines&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$_&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="p"&gt;}&lt;/span&gt;
+
+        &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$all&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;join&lt;/span&gt; &lt;span class="s"&gt;'\\n'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;@lines&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+        &lt;span class="nv"&gt;$all&lt;/span&gt; &lt;span class="o"&gt;=~&lt;/span&gt; &lt;span class="sr"&gt;s/$JP_SPACE+/$JP_SPACE/g&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+
+        &lt;span class="nb"&gt;printf&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="nv"&gt;$outfh&lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="s"&gt;"Dialogue: 0,%s,%s,Japanese,,0000,0000,0000,,%s\n"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+            &lt;span class="n"&gt;_time2ass&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$start&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;
+            &lt;span class="n"&gt;_time2ass&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$end&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;
+            &lt;span class="nv"&gt;$all&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="p"&gt;}&lt;/span&gt;
+
+    &lt;span class="nb"&gt;close&lt;/span&gt; &lt;span class="nv"&gt;$outfh&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="n"&gt;move&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$outfh&lt;/span&gt;&lt;span class="o"&gt;-&amp;gt;&lt;/span&gt;&lt;span class="n"&gt;filename&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$out&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+
+&lt;span class="k"&gt;sub &lt;/span&gt;&lt;span class="nf"&gt;_time2ass&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="nv"&gt;$t&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;shift&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="nv"&gt;$t&lt;/span&gt; &lt;span class="o"&gt;=~&lt;/span&gt;&lt;span class="sr"&gt; /^(\d+):(\d+):(\d+),(\d\d)\d*$/&lt;/span&gt; &lt;span class="ow"&gt;or&lt;/span&gt; &lt;span class="nb"&gt;die&lt;/span&gt; &lt;span class="s"&gt;"invalid time '$t'"&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+    &lt;span class="k"&gt;my&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$h&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nv"&gt;$m&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nv"&gt;$s&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nv"&gt;$ms&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;$1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$2&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$3&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$4&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+    &lt;span class="nv"&gt;$h&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="o"&gt;+&lt;/span&gt;&lt;span class="nv"&gt;$h&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="c1"&gt;# no leading zeros&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="nb"&gt;sprintf&lt;/span&gt; &lt;span class="s"&gt;'%d:%02d:%02d.%02d'&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$h&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$m&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$s&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nv"&gt;$ms&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h2&gt;Site note&lt;/h2&gt;
+&lt;p&gt;.sub/.idx files are very common; they&amp;rsquo;re a huge pain because the subtitles
+are stored as images and require OCR. The best bet there is probably to
+hard-code the subs onto the video, then layer the other set over them.&lt;/p&gt;</summary><category term="perl"></category></entry></feed>
