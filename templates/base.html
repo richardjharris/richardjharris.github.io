@@ -1,0 +1,115 @@
+<!doctype html>
+<!--[if IE 9]><html class="lt-ie10" lang="en" > <![endif]-->
+<html class="no-js" lang="en" data-useragent="Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.2; Trident/6.0)">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>my blog</title>
+<meta name="description" content=""/>
+<meta name="author" content="Richard Harris"/>
+<meta name="copyright" content="Richard Harris (c) 2015"/>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/foundation.css') }}"/>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}"/>
+<script src="{{ url_for('static', filename='js/vendor/modernizr.js') }}"></script>
+</head>
+<body>
+
+<div id="testing">
+</div>
+
+<div class="row">
+<div class="large-12 columns">
+<div class="nav-bar right">
+<ul class="button-group">
+<li><a href="{{ url_for("index") }}" class="button">Home</a></li>
+<li><a href="{{ url_for("about") }}" class="button">About</a></li>
+</ul>
+</div>
+<h1><a href="{{ url_for("index") }}" class="logo">
+不言実行</a> <small>Don't talk, just do.</small></h1>
+<hr/>
+</div>
+</div>
+
+
+<div class="row">
+
+<div class="large-9 columns" role="content">
+{% block content %}{% endblock content %}
+</div>
+
+
+<aside class="large-3 columns">
+<h5>Categories</h5>
+<ul class="side-nav">
+{% for category in all_categories.keys()|sort %}
+<li><a href="{{ url_for('category', category=category) }}">{{ category }}</a></li>
+{% endfor %}
+</ul>
+<h5>Tags</h5>
+<ul class="side-nav">
+{% for tag, count in all_tags.most_common() %}
+<li><a href="{{ url_for('tag', tag=tag) }}">{{ tag }} ({{ count }})</a></li>
+{% endfor %}
+</ul>
+<div class="panel">
+<h5>Featured</h5>
+<p>Pork drumstick turkey fugiat. Tri-tip elit turducken pork chop in. Swine short ribs meatball irure bacon nulla pork belly cupidatat meatloaf cow.</p>
+<a href="#">Read More &rarr;</a>
+</div>
+</aside>
+
+</div>
+
+
+<footer class="row">
+<div class="large-12 columns">
+<hr/>
+<div class="row">
+<div class="large-6 columns">
+<p>&copy; Richard Harris 2015.</p>
+</div>
+<div class="large-6 columns">
+<ul class="inline-list right">
+<li><a href="#">Link 1</a></li>
+<li><a href="#">Link 2</a></li>
+<li><a href="#">Link 3</a></li>
+<li><a href="#">Link 4</a></li>
+</ul>
+</div>
+</div>
+</div>
+</footer>
+<script src="{{ url_for('static', filename='js/vendor/jquery.js') }}"></script>
+<script src="{{ url_for('static', filename='js/foundation.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/foundation/foundation.tooltip.js') }}"></script>
+<script>
+      $(document).foundation({
+        tooltip: {
+          selector: '.unichar',
+          tip_template: function(selector, content) {
+            data = content.match("^(.*?) \((.*?)\)$");
+            name, code = data[0], data[1];
+            chr = selector;
+
+            function _encode(str) { return $('<div/>').text(str).html(); }
+
+            content = '<span class="unicharbox"><bdo dir="ltr">' + chr + '</bdo></span>' + _encode(name);
+
+            wrap = '<span data-selector="' + selector + '" class="unitip '
+              + Foundation.libs.tooltip.settings.tooltip_class.substring(1)
+              + '">' + content + '<span class="nub"></span></span>';
+
+            $('#testing').html('<span class="unitip ' + Foundation.libs.tooltip.settings.tooltip_class.substring(1)
+                + '">' + content + '<span class="nub"></span></span>');
+
+            return wrap;
+          },
+        }
+      });
+
+      var doc = document.documentElement;
+      doc.setAttribute('data-useragent', navigator.userAgent);
+    </script>
+</body>
+</html>
