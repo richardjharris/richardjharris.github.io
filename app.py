@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 from blog.page import Pages
 from flask import Flask, render_template, abort
 

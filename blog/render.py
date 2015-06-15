@@ -1,4 +1,3 @@
-#import markdown
 from markdown import Markdown
 
 EXTENSIONS = (
