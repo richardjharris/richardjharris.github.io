@@ -23,6 +23,9 @@ class Page(object):
         # If no slug provided, generate one automatically
         self.slug = slug or self._generate_slug()
 
+    def __repr__(self):
+        return "Page(" + repr(self.slug) + ")"
+
     @property
     def html(self):
         return render_page(self.body)
@@ -37,6 +40,7 @@ class Page(object):
         meta = dict((k.lower(), v) for k, v in meta.items())
         content = ''.join(lines)
         tags = { tag.strip() for tag in meta.get('tags', '').split(',') }
+        tags.discard('')
         # YAML automatically makes a datetime obj for us
         date = meta.get('date', mtime)
         return cls(
@@ -95,7 +99,7 @@ class Pages(list):
 
     def __getitem__(self, key):
         if type(key) == int:
-            return self.page[int]
+            return super().__getitem__(key)
         else:
             for page in self:
                 if page.slug == key:
