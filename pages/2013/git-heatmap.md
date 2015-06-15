@@ -7,7 +7,7 @@ Summary: Heatmaps in your shell! Find out who commits at crazy o'clock!
 I've released a new module to CPAN, [[ANSI::Heatmap]]. It makes pretty heatmaps for
 your console application, like this:
 
-![Sample heatmap output](|filename|/images/heatmap.png "Sample heatmap output")<br />
+![Sample heatmap output](/static/images/heatmap.png "Sample heatmap output")<br />
 Names changed to protect the innocent
 {: style="text-align: center; font-style: italic" }
 

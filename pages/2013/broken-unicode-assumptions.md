@@ -7,7 +7,7 @@ If you've read this [StackOverflow post][stack], you know about all the things y
 get wrong when using Unicode. This post explains _why_.
 
 If you are not too familiar with Unicode, please read my [introductory
-article](|filename|/unicode-in-five-minutes.markdown) first.
+article](/unicode-in-five-minutes) first.
 
 ## General Unicode Assumptions ##
 

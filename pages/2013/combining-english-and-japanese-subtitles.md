@@ -10,7 +10,7 @@ in both the language you're learning and your native tongue.
 Fortunately the <i>un</i>fortunately-named ASS format supports displaying
 more than one sub at a time, and we can use that to get a result like this:
 
-![EN/JP subs together](|filename|/images/enjp-subs.jpg)
+![EN/JP subs together](/static/images/enjp-subs.jpg)
 {: style='text-align: center' }
 
 ## The method ##
@@ -35,7 +35,7 @@ upgrade any v4 subs to v4+ for sanity reasons.
 Here is an example set of subs for 日本人の知らない日本語 ("Japanese that
 Japanese people don't know"):
 
- * [Download ZIP](|filename|/downloads/Nihonjin_no_Shiranai_Nihongo_enjp.zip) (263 KB)
+ * [Download ZIP](/static/downloads/Nihonjin_no_Shiranai_Nihongo_enjp.zip) (263 KB)
 
 ## The script ##
 

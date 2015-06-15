@@ -20,7 +20,7 @@ a comment!_
 
 ## What ##
 
-![Unicode character examples](|filename|/images/unichar-examples.png)
+![Unicode character examples](/static/images/unichar-examples.png)
 {: style='text-align: center' }
 
 Unicode defines a _code point_ (number) for every character, such as u{a}, u{ã},
@@ -30,8 +30,8 @@ _(You can mouseover any highlighted character for more information.)_
 It also includes _combining characters_ such as u{0300'} which can be added to
 other characters; this way, Unicode does not need a code point for every possible
 combination of letter and accent. On the other hand, Unicode _generally_ doesn't care
-about fonts or stylistic differences: it gives ![a (double-story)](|filename|/images/a1.png){: style='vertical-align: bottom; border: none' }
-and ![a (single-story)](|filename|/images/a2.png){: style='vertical-align: bottom; border: none' } the same codepoint.
+about fonts or stylistic differences: it gives ![a (double-story)](/static/images/a1.png){: style='vertical-align: bottom; border: none' }
+and ![a (single-story)](/static/images/a2.png){: style='vertical-align: bottom; border: none' } the same codepoint.
 
 It's *more than just a character set*: it also covers standard encodings such
 as UTF-8; <nobr>lower/upper/title</nobr> case mapping; collation (sorting); line breaks;
@@ -311,7 +311,7 @@ them, install [Symbola][], or click the fileformat.info link for a picture).
 
 #### Regional Indicator symbols ####
 
-![Regional indicator example (FR)](|filename|/images/regional-indicators.png){: style='max-width: 352px' }
+![Regional indicator example (FR)](/static/images/regional-indicators.png){: style='max-width: 352px' }
 {: style='text-align: center' }
 
 Unicode 6.0's emoji introduced symbols for many country flags,
