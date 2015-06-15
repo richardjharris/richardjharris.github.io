@@ -9,24 +9,28 @@ dd { margin-left: 3rem }
 div.codehilite pre { font-size: 0.8rem }
 
 /** Unicode tooltips **/
-.unichar, .unitip, .unicharbox {
-    padding: 0.2em;
-    border-radius: 0.2em;
+.unichar, .tooltip, .unicharbox {
+    border-radius: 0.2rem;
     border: 1px solid rgb(225, 214, 209);
     background: rgb(245, 244, 239);
     box-shadow: 1px 1px 0px rgb(235, 224, 239);
 }
-.unitip {
-    padding: 0.4em;
+.unichar { padding: 0.3rem }
+.tooltip {
+    padding: 0.4rem;
     position: absolute;
     top: 0;
     left: 0;
     z-index: 3;
+    display: none;
     color: black;
+    font-size: 1.5rem;
 }
+
 .unicharbox {
+    padding: 0.5rem;
     font-size: 200%;
-    margin: 0.3em;
+    margin: 0.3rem;
     box-shadow: inset 1px 1px 0px rgb(235, 224, 239);
 }
 

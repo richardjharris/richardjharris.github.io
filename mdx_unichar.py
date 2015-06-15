@@ -39,15 +39,13 @@ class UnicharPattern(markdown.inlinepatterns.Pattern):
         code = "%04X" % ord(char)
 
         tag = etree.Element('span')
-        text = self.displayChar(char, flags)
-        char_tag = etree.SubElement(tag, 'a', {
-            'class': 'unichar tip-bottom',
+        char_tag = etree.SubElement(tag, 'span', {
+            'class': 'unichar',
             'title': "%s (U+%s)" % (name, code),
-            'data-tooltip': text,
-            'aria-haspopup': 'true',
-            'href': 'http://www.fileformat.info/info/unicode/char/' + code,
+            'data-name': name,
+            'data-code': code,
         })
-        char_tag.text = text
+        char_tag.text = self.displayChar(char, flags)
 
         info = self.postInfo(char, flags)
         if info:

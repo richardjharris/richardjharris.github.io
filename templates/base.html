@@ -82,34 +82,17 @@
 </footer>
 <script src="{{ url_for('static', filename='js/vendor/jquery.js') }}"></script>
 <script src="{{ url_for('static', filename='js/foundation.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/foundation/foundation.tooltip.js') }}"></script>
+<script src="{{ url_for('static', filename='js/unicode-tooltips.js') }}"></script>
+<script src="{{ url_for('static', filename='js/vendor/jquery.simpletip-1.3.1.min.js') }}"></script>
 <script>
-      $(document).foundation({
-        tooltip: {
-          selector: '.unichar',
-          tip_template: function(selector, content) {
-            data = content.match("^(.*?) \((.*?)\)$");
-            name, code = data[0], data[1];
-            chr = selector;
-
-            function _encode(str) { return $('<div/>').text(str).html(); }
-
-            content = '<span class="unicharbox"><bdo dir="ltr">' + chr + '</bdo></span>' + _encode(name);
-
-            wrap = '<span data-selector="' + selector + '" class="unitip '
-              + Foundation.libs.tooltip.settings.tooltip_class.substring(1)
-              + '">' + content + '<span class="nub"></span></span>';
-
-            $('#testing').html('<span class="unitip ' + Foundation.libs.tooltip.settings.tooltip_class.substring(1)
-                + '">' + content + '<span class="nub"></span></span>');
-
-            return wrap;
-          },
-        }
-      });
+      $(document).foundation();
 
       var doc = document.documentElement;
       doc.setAttribute('data-useragent', navigator.userAgent);
+
+      $(document).ready(function(){
+        $('.unichar').each(add_tooltip);
+      });
     </script>
 </body>
 </html>
