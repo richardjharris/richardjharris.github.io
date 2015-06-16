@@ -2,7 +2,7 @@ function add_tooltip() {
     var element = $(this);
     element.simpletip({
         fixed: true,
-        offset: [-10,-70],
+        offset: [-10, -70],
         onBeforeShow: function() {
             element.removeAttr('title');
             var html = generate_tooltip_html(element);
