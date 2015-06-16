@@ -24,7 +24,7 @@
 <ul class="button-group">
 <li><a href="{{ url_for("index") }}" class="button">Home</a></li>
 <li><a href="{{ url_for("about") }}" class="button">About</a></li>
-<li><a href="https://github.com/richardjharris" class="button">GitHub</a></li>
+<li><a href="{{ url_for("featured") }}" class="button">Featured</a></li>
 </ul>
 </div>
 <h1><a href="{{ url_for("index") }}" class="logo">
@@ -42,6 +42,10 @@
 
 
 <aside class="large-3 columns sidebar">
+<div class="panel">
+<h5>First time here?</h5>
+<p>Have a look at my <a href="{{ url_for('featured') }}">featured articles</a>.</p>
+</div>
 <h5>Categories</h5>
 <ul class="side-nav">
 {% for category in all_categories.keys()|sort %}
@@ -55,11 +59,10 @@
 {% endfor %}
 </ul>
 </a>
-<div class="panel">
-<h5>Featured</h5>
-<p>Pork drumstick turkey fugiat. Tri-tip elit turducken pork chop in. Swine short ribs meatball irure bacon nulla pork belly cupidatat meatloaf cow.</p>
-<a href="#">Read More &rarr;</a>
-</div>
+<h5>Other sites</h5>
+<ul class="side-nav taglist">
+<li><a href="https://github.com/richardjharris">GitHub</a></li>
+</ul>
 <div class="text-center">
 <!-- stackoverflow badge -->
 <a href="http://stackoverflow.com/users/74496/rjh">

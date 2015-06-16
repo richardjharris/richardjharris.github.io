@@ -13,14 +13,14 @@ from html import escape as html_escape
 class Page(object):
     """Represents an article (content and metadata. Can be saved and loaded"""
     def __init__(self, title, body, path=None, category=None,
-            tags=None, date=None, summary=None, star=False, slug=None):
+            tags=None, date=None, summary=None, featured=None, slug=None):
         self.title = title
         self.body = body
         self.category = category
         self.tags = tags if tags else set()
         self.date = date if date else datetime.today()
         self.summary = summary
-        self.star = star
+        self.featured = featured
         self.path = path
         # If no slug provided, generate one automatically
         self.slug = slug or self._generate_slug()
@@ -76,24 +76,24 @@ class Page(object):
             tags = tags,
             date = date,
             summary = meta.get('summary', None),
-            star = ('star' in meta),
+            featured = meta.get('featured', None),
             path = path,
         )
 
     def save(self):
         with open(self.path, 'w') as handle:
             meta = collections.OrderedDict()
-            meta['title'] = self.title
-            meta['slug'] = self.slug
+            meta['Title'] = self.title
+            meta['Slug'] = self.slug
             if self.category:
-                meta['category'] = self.category
+                meta['Category'] = self.category
             if self.tags:
-                meta['tags'] = ', '.join(self.tags)
-            meta['date'] = self.date.strftime('%Y-%m-%d %H:%m')
+                meta['Tags'] = ', '.join(self.tags)
+            meta['Date'] = self.date.strftime('%Y-%m-%d %H:%m')
             if self.summary:
-                meta['summary'] = self.summary
-            if self.star:
-                meta['star'] = '*'
+                meta['Summary'] = self.summary
+            if self.featured:
+                meta['Featured'] = self.featured
             w.write(yaml.dump(meta))
             w.write("\n")
             w.write(self.body)
@@ -125,6 +125,9 @@ class Pages(object):
 
     def all(self):
         return self._pages
+
+    def featured(self):
+        return self._filter(lambda p: p.featured)
 
     def with_tag(self, tag):
         return self._filter(lambda p: tag in p.tags)

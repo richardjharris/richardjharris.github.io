@@ -24,6 +24,10 @@ def index():
 def about():
     return render_template('about.html')
 
+@app.route('/featured/')
+def featured():
+    return render_template('featured.html', pages=pages.featured())
+
 @app.route('/tag/<string:tag>/')
 def tag(tag):
     tagged = pages.with_tag(tag)

@@ -8,6 +8,9 @@
             <a href="{{ url_for("tag", tag=page_tag) }}">{{ page_tag }}</a>
         {% endfor %}
     {% endif %}
+    {% if featured %}
+        <ul><li>{{ page.featured }}</li></ul>
+    {% endif %}
     </li>
 {% else %}
     <li>No page.</li>
