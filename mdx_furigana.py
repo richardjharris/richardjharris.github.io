@@ -51,6 +51,9 @@ class FuriganaPattern(markdown.inlinepatterns.Pattern):
         furigana = m.group('furigana')
         if regex.fullmatch('[HL]+', furigana, flags=regex.I):
             html = self.make_pitch_html(kanji, furigana)
+        elif '・' in furigana:
+            # Manually specified reading
+            html = self.make_ruby_html_fixed(kanji, furigana)
         else:
             html = self.make_ruby_html(kanji, furigana)
         # Wrap in a valid tag, or etree will complain
@@ -81,6 +84,13 @@ class FuriganaPattern(markdown.inlinepatterns.Pattern):
             output = _span('tone-container') + output + _close
 
         return output
+
+    @staticmethod
+    def make_ruby_html_fixed(kanji, furigana):
+        furigana = furigana.split('・')
+        def fillSlot(m):
+            return '<ruby>{}<rt>{}</rt></ruby>'.format(m.group(0), furigana.pop(0))
+        return regex.sub('\p{Han}', fillSlot, kanji)
 
     @staticmethod
     def make_ruby_html(kanji, furigana):
