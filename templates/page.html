@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% block title %}{{ page.title_text }} - {{ super() }}{% endblock %}
 {% block content %}
 <article>
 <h1><a href="#">{{ page.title_html|safe }}</a></h1>

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% block title %}{{ tag }} - {{ super() }}{% endblock %}
 {% block content %}
     <h2>List of stuff tagged <em>{{ tag }}</em></h2>
     {% with pages=pages  %}
