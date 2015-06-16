@@ -6,7 +6,7 @@ h1, h2, h3, h4, h5, h6, body, button, .button, .side-nav {
 /* Ruby tags have big spacing by default; reduce on Firefox */
 /* Chrome ignores margin on <rt> so... */
 ruby > rt {
-    margin-bottom: -0.5rem;
+/*    margin-bottom: -0.5rem;*/
     font-size: 60%;  /* slightly more readable */
 }
 
