@@ -32,6 +32,10 @@ FURIGANA_RE = regex.compile(r'''
         # 漢字{かんじ} syntax
         (?: (?P<kanji>\p{Han}[\p{Hiragana}\p{Han}]*?)
         \{ (?P<furigana>.*?) \} )
+      |
+        # ふりがな{HLL} syntax (also used for へ{e} etc.)
+        (?: (?P<kanji>\p{Hiragana}+?)
+        \{ (?P<furigana>.*?) \} )
     )(.*?)$
 ''', flags=regex.VERBOSE | regex.DOTALL)
 
