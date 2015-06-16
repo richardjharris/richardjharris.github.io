@@ -1,4 +1,6 @@
-title: 'た-form: not just for the past'
+Title: 'た-form: not just for the past'
+Featured: The た form actually has 9 different uses!
+Category: Japanese
 
 When studying Japanese you often hear た used in some strange ways! When
 somebody finds something they are looking for, they don't say ある, they say

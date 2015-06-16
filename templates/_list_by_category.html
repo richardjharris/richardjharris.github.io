@@ -1,0 +1,6 @@
+{% for category, subpages in pages|groupby(attribute='category') %}
+    <h3>{{ category }}</h3>
+    {% with pages=subpages, featured=featured %}
+        {% include "_list.html" %}
+    {% endwith %}
+{% endfor %}
