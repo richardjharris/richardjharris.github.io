@@ -25,7 +25,10 @@ a comment!_
 
 Unicode defines a _code point_ (number) for every character, such as u{a}, u{ã},
 u{ې}, u{不} and u{☃}. As of [Unicode 6.2][uni62] there are **109,976** code points!
-_(You can mouseover any highlighted character for more information.)_
+
+<div class="panel callout radius">
+<p>You can mouseover any highlighted character for more information!</p>
+</div>
 
 It also includes _combining characters_ such as u{0300'} which can be added to
 other characters; this way, Unicode does not need a code point for every possible
