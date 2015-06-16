@@ -1,12 +1,14 @@
 """View, filter and edit markdown pages."""
-import yaml
 import os
+import regex
+import yaml
 from collections import OrderedDict, Counter
 from operator import methodcaller
 from itertools import takewhile
 from datetime import datetime
 from slugify import slugify
 from blog.render import render_page
+from html import escape as html_escape
 
 class Page(object):
     """Represents an article (content and metadata. Can be saved and loaded"""
@@ -29,6 +31,29 @@ class Page(object):
     @property
     def html(self):
         return render_page(self.body)
+
+    # For titles, we support a simple and explicit form of furigana
+    # (less complex than the articles do)
+    FURIGANA_RE = regex.compile(r'\[(.*?)\]\{(.*?)\}')
+
+    @property
+    def title_html(self):
+        """Title with furigana represented as ruby tags"""
+        def makeTag(m):
+            return "<ruby>{}<rt>{}</rt></ruby>".format(*m.groups())
+        title_safe = html_escape(self.title)
+        html = regex.sub(self.FURIGANA_RE, makeTag, title_safe)
+        return html
+
+    @property
+    def title_text(self):
+        """Title with furigana removed; for page title"""
+        return regex.sub(self.FURIGANA_RE, lambda m: m.group(1), self.title)
+
+    @property
+    def title_reading(self):
+        """Title with kanji replaced with furigana; used for slugs"""
+        return regex.sub(self.FURIGANA_RE, lambda m: m.group(2), self.title)
 
     @classmethod
     def load(cls, path):
@@ -74,7 +99,7 @@ class Page(object):
             w.write(self.body)
 
     def _generate_slug(self):
-        return slugify(self.title, max_length=70, word_boundary=True)
+        return slugify(self.title_reading, max_length=70, word_boundary=True)
 
 class Pages(list):
     """Filterable collection of pages under the given directory"""

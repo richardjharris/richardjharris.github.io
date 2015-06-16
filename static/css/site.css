@@ -3,17 +3,29 @@ h1, h2, h3, h4, h5, h6, body, button, .button, .side-nav {
     font-family: 'Palanquin', sans-serif;
 }
 
-/* Ruby tags have big spacing by default; reduce on Firefox */
-/* Chrome ignores margin on <rt> so... */
-ruby > rt {
-/*    margin-bottom: -0.5rem;*/
-    font-size: 60%;  /* slightly more readable */
-}
-
-a.logo, a.unichar { color: black }
-
 article pre { margin-bottom: 1em }
-article h1 { font-size: 2.6rem }
+
+/* Default h1 takes up too much space when wrapped. */
+article h1 {
+    font-size: 2.6rem;
+    line-height: 1;
+    margin-bottom: 1rem;
+}
+/* Attempt to improve furigana look */
+ruby > rt {
+    top: 0.5rem;
+    position: relative;
+    margin-top: -1rem;
+    font-size: 70%;
+}
+article rt {
+    color: #292929;
+}
+article h1 rt {
+    top: 1rem;  /* why different? */
+    font-size: 60%;
+    color: #0078A0;
+}
 article h2 { font-size: 2rem }
 
 dd { margin-left: 3rem }
