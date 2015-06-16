@@ -12,6 +12,7 @@ EXTENSIONS = (
     'attr_list',
     'autolink',
     'fenced_code',
+    'furigana',
 )
 
 def render_page(text):

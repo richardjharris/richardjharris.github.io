@@ -2,6 +2,7 @@ Title: A fun gotcha with magic <>
 Date: 2013-09-13 10:00
 Category: Perl
 Tags: perl, pbp, gotcha
+Slug: fun-gotcha-with-magic-diamond
 
 Despite liberally sprinkling my shell scripts with `-e`[^eflag] and `-o pipefail`[^pipeflag],
 and adding defense with `use autodie;` in Perl scripts, there's a still some logic in

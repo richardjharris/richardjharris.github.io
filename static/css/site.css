@@ -1,3 +1,15 @@
+/* Is there a better way to override this? Grr... */
+h1, h2, h3, h4, h5, h6, body, button, .button, .side-nav {
+    font-family: 'Palanquin', sans-serif;
+}
+
+/* Ruby tags have big spacing by default; reduce on Firefox */
+/* Chrome ignores margin on <rt> so... */
+ruby > rt {
+    margin-bottom: -0.5rem;
+    font-size: 60%;  /* slightly more readable */
+}
+
 a.logo, a.unichar { color: black }
 
 article pre { margin-bottom: 1em }
@@ -6,7 +18,31 @@ article h2 { font-size: 2rem }
 
 dd { margin-left: 3rem }
 
-div.codehilite pre { font-size: 0.8rem }
+code, div.codehilite pre { font-size: 0.9rem }
+
+/* Side nav tweaks */
+.sidebar h5 { font-weight: bold }
+ul.side-nav li { font-size: 1rem }
+ul.taglist li a:not(.button) { padding: 0px 0.875rem }
+
+/** Japanese pitch accent markers **/
+span.tone-h{
+    border-top:1px solid red;
+}
+
+span.tone-l-change{
+    border:solid red;
+    border-width:0 0 1px 1px;
+}
+
+span.tone-l{
+    border-bottom:1px solid red;
+}
+
+span.tone-h-change{
+    border:solid red;
+    border-width:1px 0 0 1px;
+}
 
 /** Unicode tooltips **/
 .unichar, .tooltip, .unicharbox {
@@ -15,7 +51,7 @@ div.codehilite pre { font-size: 0.8rem }
     background: rgb(245, 244, 239);
     box-shadow: 1px 1px 0px rgb(235, 224, 239);
 }
-.unichar { padding: 0.3rem }
+.unichar { padding: 0.0rem 0.4rem }
 .tooltip {
     padding: 0.4rem;
     position: absolute;
