@@ -2,7 +2,7 @@ from blog.page import Pages
 from flask import Flask, render_template, abort
 
 app = Flask(__name__)
-pages = Pages.from_dir()  # global?
+pages = Pages()
 
 @app.context_processor
 def inject_pages():
@@ -12,9 +12,13 @@ def inject_pages():
         all_tags = pages.tag_counts(),
     )
 
+@app.before_request
+def reload_pages():
+    pages.reload()
+
 @app.route("/")
 def index():
-    return render_template('index.html', pages=pages)
+    return render_template('index.html', pages=pages.all())
 
 @app.route('/about/')  # /about also redirects here
 def about():

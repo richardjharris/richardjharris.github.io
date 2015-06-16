@@ -1,4 +1,4 @@
-title: The modern Japanese causative form (使役形)
+title: The modern Japanese causative form ([使役形]{しえきけい})
 slug: modern-japanese-causative-form
 
 I'm going to write about the _short_ causative and causative passive

@@ -101,14 +101,30 @@ class Page(object):
     def _generate_slug(self):
         return slugify(self.title_reading, max_length=70, word_boundary=True)
 
-class Pages(list):
+class Pages(object):
     """Filterable collection of pages under the given directory"""
 
-    @classmethod
-    def from_dir(cls, directory='pages/'):
-        paths = cls._walk(directory)
-        pages = [Page.load(path) for path in paths]
-        return cls(pages)
+    def __init__(self, directory='pages/'):
+        self._cache = {}
+        self.directory = directory
+        self.reload()
+
+    def reload(self):
+        paths = self._walk(self.directory)
+        pages = []
+        for path in paths:
+            cached = self._cache.get(path)
+            mtime = os.path.getmtime(path)
+            if cached and cached[1] == mtime:
+                page = cached[0]
+            else:
+                page = Page.load(path)
+                self._cache[path] = (page, mtime)
+            pages.append(page)
+        self._pages = pages
+
+    def all(self):
+        return self._pages
 
     def with_tag(self, tag):
         return self._filter(lambda p: tag in p.tags)
@@ -117,26 +133,25 @@ class Pages(list):
         return self._filter(lambda p: p.category and p.category == category)
 
     def tag_counts(self):
-        return Counter(tag for page in self for tag in page.tags)
+        return Counter(tag for page in self.all() for tag in page.tags)
 
     def category_counts(self):
-        return Counter(page.category for page in self if page.category)
+        return Counter(page.category for page in self.all() if page.category)
 
     def __getitem__(self, key):
         if type(key) == int:
-            return super().__getitem__(key)
+            return self._pages[key]
         else:
-            for page in self:
+            for page in self.all():
                 if page.slug == key:
                     return page
             raise KeyError("no such page")
 
     def _filter(self, f):
-        return type(self)(filter(f, self))
+        return filter(f, self.all())
 
     @staticmethod
     def _walk(directory):
-        """Code stolen from flatpages.py, possibly bad."""
         for subdir, _, filenames in os.walk(directory):
             for fn in filenames:
                 if fn.endswith('.md'):
