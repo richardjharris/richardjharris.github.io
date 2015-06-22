@@ -26,7 +26,11 @@ Word | Definition
 キー- key (of music)
 吸う{すう}、吐く{はく} | to breathe in and breathe out (often heard as 吸って、吐いて when breathing together)
 発声練習{はっせいれんしゅう} | vocal exercises (e.g. scales or singing tongue-twisters)
-抜く{ぬく} | to sing a (high) note in falsetto
+ファルセット, 裏声{うらごえ} | falsetto
+抜く{ぬく} | to sing a (high) note in falsetto. A hint of falsetto is 抜き気味{ぬきぎみ}
+地声{じごえ} | natural voice
+胸声{きょうせい}, 頭声{とうせい} | chest voice, head voice
+声域{せいいき}(が[広い]{ひろい}) | voice range (is wide)
 伸ばす{のばす} | to hold a note
 ビリビリ | state of your throat when forcing out a poor-sounding high note
 絞れる{しぼれる} | to have your throat constrict (when voicing a high note)
