@@ -1,17 +1,34 @@
-function add_tooltip() {
+function add_unicode_tooltip() {
     var element = $(this);
-    element.simpletip({
-        fixed: true,
-        offset: [-10, -70],
-        onBeforeShow: function() {
-            element.removeAttr('title');
-            var html = generate_tooltip_html(element);
-            this.update(html);
+    element.qtip({
+        content: function(event, api) {
+            return generate_unicode_tooltip_html(element);
         },
+        position: {
+            my: 'top left',
+            at: 'bottom right',
+            target: element,
+            // target: 'mouse'
+        },
+        style: { classes: 'uni-tooltip' },
     });
 }
 
-function generate_tooltip_html(el) {
+function add_annotation_tooltip() {
+    var element = $(this);
+    element.qtip({
+        content: { attr: 'title' },
+        position: {
+            my: 'top left',
+            at: 'bottom right',
+            target: element,
+            // target: 'mouse'
+        },
+        style: { classes: 'an-tooltip' },
+    });
+}
+
+function generate_unicode_tooltip_html(el) {
     var name = el.attr('data-name')
     var code = el.attr('data-code');
     var chr = el.contents().filter(function() { return this.nodeType == 3 }).text();

@@ -1,6 +1,7 @@
 from markdown import Markdown
 
 EXTENSIONS = (
+    'reibun',
     'abbr_once',  # if used, can't use 'extra'
     'unichar',
     'smart_strong',

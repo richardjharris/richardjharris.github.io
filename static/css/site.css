@@ -28,7 +28,14 @@ article h1 rt {
 }
 article h2 { font-size: 2rem }
 
-dd { margin-left: 3rem }
+/* foundation makes table text smaller, not sure why */
+table tr th, table tr td {
+    font-size: 1rem;
+}
+
+/* dd is not indented by default */
+/* 3em is a bit much for small screens */
+dd { margin-left: 2rem }
 
 code, div.codehilite pre { font-size: 0.9rem }
 
@@ -56,21 +63,41 @@ span.tone-h-change{
     border-width:1px 0 0 1px;
 }
 
+/** Example sentence and breakdown **/
+/** Based on Foundation blockquote style **/
+div.example-sentence {
+    margin: 0px 0px 1.25rem;
+    padding: 0.5625rem 1.25rem 0px 1.1875rem;
+    border-left: 1px solid #ddd;
+}
+div.example-sentence p {
+    margin-bottom: 0px;
+    color: #6f6f6f;
+}
+div.example-sentence rt {
+    color: #6f6f6f;
+}
+div.example-sentence p.en {
+    font-style: italic;
+    font-size: 0.8125rem;
+    color: #555;
+}
+div.example-sentence span.an {
+    border-radius: 1px;
+    background: rgb(245, 244, 239);
+    padding: 0rem 0.2rem;
+}
+
 /** Unicode tooltips **/
-.unichar, .tooltip, .unicharbox {
+.unichar, .uni-tooltip, .an-tooltip .unicharbox {
     border-radius: 0.2rem;
     border: 1px solid rgb(225, 214, 209);
     background: rgb(245, 244, 239);
     box-shadow: 1px 1px 0px rgb(235, 224, 239);
 }
 .unichar { padding: 0.0rem 0.4rem }
-.tooltip {
+.uni-tooltip, .an-tooltip {
     padding: 0.4rem;
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 3;
-    display: none;
     color: black;
     font-size: 1.2rem;
 }

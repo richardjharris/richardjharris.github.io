@@ -1,6 +1,6 @@
 <!doctype html>
 <!--[if IE 9]><html class="lt-ie10" lang="en" > <![endif]-->
-<html class="no-js" lang="en" data-useragent="Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.2; Trident/6.0)">
+<html class="no-js" lang="en">
 <head>
 <link href='http://fonts.googleapis.com/css?family=Palanquin' rel='stylesheet' type='text/css'>
 <meta charset="utf-8"/>
@@ -11,6 +11,7 @@
 <meta name="copyright" content="Richard Harris (c) 2015"/>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/foundation.css') }}"/>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}"/>
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/qtip2/2.2.1/basic/jquery.qtip.min.css"/>
 <script src="{{ url_for('static', filename='js/vendor/modernizr.js') }}"></script>
 </head>
 <body>
@@ -91,17 +92,12 @@ Made with <a href="http://foundation.zurb.com/">Foundation</a> and <a href="http
 </div>
 </footer>
 <script src="{{ url_for('static', filename='js/vendor/jquery.js') }}"></script>
-<script src="{{ url_for('static', filename='js/foundation.min.js') }}"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/qtip2/2.2.1/basic/jquery.qtip.min.js"></script>
 <script src="{{ url_for('static', filename='js/unicode-tooltips.js') }}"></script>
-<script src="{{ url_for('static', filename='js/vendor/jquery.simpletip-1.3.1.min.js') }}"></script>
 <script>
-      $(document).foundation();
-
-      var doc = document.documentElement;
-      doc.setAttribute('data-useragent', navigator.userAgent);
-
       $(document).ready(function(){
-        $('.unichar').each(add_tooltip);
+        $('.unichar').each(add_unicode_tooltip);
+        $('.an').each(add_annotation_tooltip);
       });
     </script>
 </body>
