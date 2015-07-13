@@ -70,6 +70,21 @@ div.example-sentence {
     padding: 0.5625rem 1.25rem 0px 1.1875rem;
     border-left: 1px solid #ddd;
 }
+
+/** Multiple sentences inside a breakdown block are handled
+ ** differently
+ **/
+div.breakdown {
+    margin: 0px 0px 1.25rem;
+}
+div.breakdown div.example-sentence {
+    margin: 0px;
+}
+/* Whether furigana is present or not, normalise height */
+div.breakdown div.example-sentence p {
+    padding-top: 0.2rem;
+}
+
 div.example-sentence p {
     margin-bottom: 0px;
     color: #6f6f6f;
@@ -82,31 +97,81 @@ div.example-sentence p.en {
     font-size: 0.8125rem;
     color: #555;
 }
-div.example-sentence span.an {
-    border-radius: 1px;
+.an {
+    border-bottom: 2px solid transparent;
+    border-radius: 0.3rem;
     background: rgb(245, 244, 239);
     padding: 0rem 0.2rem;
+    border-color: transparent;
+    transition: background-color 0.3s, border-color 0.3s;
+}
+.an-highlight {
+    background: #fff6ca;
+}
+.an-hover {
+    border-bottom: 2px solid #B9AE7A;
+    background: #FBEA96;
 }
 
 /** Unicode tooltips **/
-.unichar, .uni-tooltip, .an-tooltip .unicharbox {
+.unichar, .uni-tooltip, .an-tooltip, .unicharbox {
     border-radius: 0.2rem;
     border: 1px solid rgb(225, 214, 209);
     background: rgb(245, 244, 239);
     box-shadow: 1px 1px 0px rgb(235, 224, 239);
 }
 .unichar { padding: 0.0rem 0.4rem }
-.uni-tooltip, .an-tooltip {
+.uni-tooltip .qtip-content {
     padding: 0.4rem;
     color: black;
     font-size: 1.2rem;
+    line-height: 1.5rem;
+}
+.an-tooltip h3 {
+    font-size: 1.2rem;
+}
+.an-tooltip h3 rt {
+    font-size: 0.8rem;
+    margin-bottom: -0.2rem;
+}
+.an-tooltip hr {
+    margin: 0px;
+    margin-bottom: 0.4rem;
+}
+.an-tooltip p, .an-tooltip ul,.an-tooltip li {
+    font-size: 0.8rem;
+    margin-bottom: 0.2rem;
+}
+ul.inflection ul {
+    list-style: none;
+    margin-left: 0;
+    padding-left: 0;
+}
+ul.inflection li {
+    list-style: none;
+    text-indent: -1.2rem;
+    color: #444;
+}
+ul.inflection span.word {
+    color: black;
+}
+ul.inflection li:first-child:before {
+    padding-left: 0.1rem;
+}
+ul.inflection li:not(:first-child):before {
+/*    content: "➥";*/
+    color: black;
+    content: "↳";
+    padding-left: 0.3rem;
+    padding-right: 0.3rem;
 }
 
 .unicharbox {
-    padding: 0 0.5rem;
+    padding: 0.5rem;
     float: left;
     font-size: 2rem;
     margin: 0.3rem;
+    margin-right: 0.5rem;
     box-shadow: inset 1px 1px 0px rgb(235, 224, 239);
 }
 

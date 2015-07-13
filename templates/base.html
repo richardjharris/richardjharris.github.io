@@ -11,13 +11,10 @@
 <meta name="copyright" content="Richard Harris (c) 2015"/>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/foundation.css') }}"/>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}"/>
-<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/qtip2/2.2.1/basic/jquery.qtip.min.css"/>
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/qtip2/2.2.1/jquery.qtip.min.css"/>
 <script src="{{ url_for('static', filename='js/vendor/modernizr.js') }}"></script>
 </head>
 <body>
-
-<div id="testing">
-</div>
 
 <div class="row">
 <div class="large-12 columns">
@@ -98,6 +95,8 @@ Made with <a href="http://foundation.zurb.com/">Foundation</a> and <a href="http
       $(document).ready(function(){
         $('.unichar').each(add_unicode_tooltip);
         $('.an').each(add_annotation_tooltip);
+        // For debugging tooltip HTML
+        // $('.an').each(function() { $(this).qtip('toggle', true); });
       });
     </script>
 </body>
