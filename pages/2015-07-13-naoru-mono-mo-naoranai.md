@@ -1,6 +1,6 @@
 title: 治るものも治らない
 slug: naoru-mono-mo-naoranai
-tags: japanese
+category: Japanese
 
 I came across this phrase in Tokyo Ghoul (東京[喰種]{グール}) which is apparently used a
 lot by nurses/doctors when talking to patients:
