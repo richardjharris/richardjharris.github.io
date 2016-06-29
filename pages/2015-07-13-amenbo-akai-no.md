@@ -1,6 +1,6 @@
 Title: あめんぼの歌
 Slug: amenbo-vocal-exercise-song
-category: Japanese
+tags: Japanese
 date: 2015-07-13
 
 A 発声練習{はっ・せい・れん・しゅう} (vocal exercise) song composed by 北原{きたはら}白秋{はくしゅう}. It includes all 五十音 (50 sounds of the Japanese language)
