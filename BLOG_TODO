@@ -1,0 +1,51 @@
+so many blogs.
+
+Keep flat files, I like history tracking. But needs a better way of managing
+the posts.
+
+ - git tracking
+ - requirements.txt
+ - pages need ordering and other stuff
+ - better title
+ - about page
+ - improvements to 'featured'
+ - testing of mdx_reibun.py not complete... needs improvement maybe
+
+Inspiration 2: https://codeascraft.com/ (Etsy blog)
+  infinascroller, I like a lot.
+  URL is /YYYY/MM/DD/q1-2016-site-performance-report(/#comments)
+
+
+Inspiration: http://jvns.ca/ (flat page + favourites)
+ - Favourite page is split by year
+  Feb 10 in favourite, rust, talks
+  RSS feed (seems to just be one)
+  Flat list of date + article name
+  julia uses ./source/_posts/YYYY-MM-DD-title.md
+  ---
+  layout: post
+  title: "Julia blah"
+  date: ...
+  comments: true
+  categories:
+  ---
+
+  (Content goes here)
+
+  <!-- more -->
+
+Dropbox/code/wine.pl -> article
+
+blog: implement categories
+  implement article first paragraph thing
+  tidy it up
+  responsive tables, maybe
+  also Dropbox/code/blog (stuff)
+
+Dropbox/blog - usable? Don't think so
+publish more modules
+
+article about beanstalk
+
+unicode emoji in firefox
+maybe giving up on awesomevm and i3
