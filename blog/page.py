@@ -25,6 +25,11 @@ class Page(object):
         # If no slug provided, generate one automatically
         self.slug = slug or self._generate_slug()
 
+        # Normalise casing of category/tag
+        if self.category:
+            self.category = self.category.title()
+            self.tags &= set(self.category.lower())
+
     def __repr__(self):
         return "Page(" + repr(self.slug) + ")"
 
@@ -57,17 +62,37 @@ class Page(object):
 
     @classmethod
     def load(cls, path):
-        mtime = datetime.fromtimestamp(os.path.getmtime(path))
         lines = open(path)
+
         # Read meta info until an empty line is encountered
         meta = yaml.load('\n'.join(takewhile(methodcaller('strip'), lines)))
+
         # Lowercase (standardise) key case
         meta = dict((k.lower(), v) for k, v in meta.items())
+
+        title = meta.get('title', None)
+        if title is None:
+            raise Exception("Title is missing")
+
         content = ''.join(lines)
+
         tags = { tag.strip() for tag in meta.get('tags', '').split(',') }
         tags.discard('')
-        # YAML automatically makes a datetime obj for us
-        date = meta.get('date', mtime)
+
+        date = meta.get('date', None)
+
+        if date is None:
+            # Try parsing the YYYY-MM-DD date out of the filename
+            filename = os.path.basename(path)
+            try:
+                date = datetime.strptime(filename[:10], "%Y-%m-%d")
+            except ValueError:
+                pass
+
+        if date is None:
+            # Default to the modified time
+            date = datetime.fromtimestamp(os.path.getmtime(path))
+            
         return cls(
             title = meta['title'],
             slug = meta.get('slug', None),
@@ -87,13 +112,21 @@ class Page(object):
             meta['Slug'] = self.slug
             if self.category:
                 meta['Category'] = self.category
+
             if self.tags:
                 meta['Tags'] = ', '.join(self.tags)
-            meta['Date'] = self.date.strftime('%Y-%m-%d %H:%m')
+
+            if self.date.strfime('%H:%m') == '00:00':
+                meta['Date'] = self.date.strftime('%Y-%m-%d')
+            else:
+                meta['Date'] = self.date.strftime('%Y-%m-%d %H:%m')
+
             if self.summary:
                 meta['Summary'] = self.summary
+
             if self.featured:
                 meta['Featured'] = self.featured
+
             w.write(yaml.dump(meta))
             w.write("\n")
             w.write(self.body)
@@ -113,14 +146,19 @@ class Pages(object):
         paths = self._walk(self.directory)
         pages = []
         for path in paths:
-            cached = self._cache.get(path)
-            mtime = os.path.getmtime(path)
-            if cached and cached[1] == mtime:
-                page = cached[0]
-            else:
-                page = Page.load(path)
-                self._cache[path] = (page, mtime)
-            pages.append(page)
+            try:
+                cached = self._cache.get(path)
+                mtime = os.path.getmtime(path)
+                if cached and cached[1] == mtime:
+                    page = cached[0]
+                else:
+                    page = Page.load(path)
+                    self._cache[path] = (page, mtime)
+                pages.append(page)
+            except Exception as err:
+                print("Error loading page " + path)
+                raise
+
         self._pages = pages
 
     def all(self):
