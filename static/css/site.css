@@ -1,6 +1,8 @@
 /* Is there a better way to override this? Grr... */
 h1, h2, h3, h4, h5, h6, body, button, .button, .side-nav {
-    font-family: 'Palanquin', sans-serif;
+    /* Disabled as it causes text to be invisible while the webfont loads,
+     * which makes it seem slow. */
+    /*font-family: 'Palanquin', sans-serif;*/
 }
 
 article pre { margin-bottom: 1em }

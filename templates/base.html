@@ -2,7 +2,7 @@
 <!--[if IE 9]><html class="lt-ie10" lang="en" > <![endif]-->
 <html class="no-js" lang="en">
 <head>
-<link href='http://fonts.googleapis.com/css?family=Palanquin' rel='stylesheet' type='text/css'>
+<!-- <link href='http://fonts.googleapis.com/css?family=Palanquin' rel='stylesheet' type='text/css'> -->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>{% block title %}fugenjikko{% endblock %}</title>
@@ -11,8 +11,8 @@
 <meta name="copyright" content="Richard Harris (c) {{current_year}}"/>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/foundation.css') }}"/>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}"/>
-<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/qtip2/2.2.1/jquery.qtip.min.css"/>
-<script src="{{ url_for('static', filename='js/vendor/modernizr.js') }}"></script>
+<!-- modernizer slows down the page, and we're not using it -->
+<!-- <script src="{{ url_for('static', filename='js/vendor/modernizr.js') }}"></script> -->
 </head>
 <body>
 
@@ -62,9 +62,16 @@
 <li><a href="https://github.com/richardjharris">GitHub</a></li>
 </ul>
 <div class="text-center">
-<!-- stackoverflow badge -->
+<!-- stackoverflow badge. slow so lazy-load it -->
 <a href="http://stackoverflow.com/users/74496/rjh">
-<img src="http://stackoverflow.com/users/flair/74496.png" width="208" height="58" alt="Link to stackoverflow profile" title="stackoverflow profile">
+<img id="stack" data-original="http://stackoverflow.com/users/flair/74496.png"
+    width="208" height="58" alt="Link to stackoverflow profile"
+    title="stackoverflow profile">
+    <noscript>
+    <img src="http://stackoverflow.com/users/flair/74496.png"
+    width="208" height="58" alt="Link to stackoverflow profile"
+    title="stackoverflow profile">
+    </noscript>
 </a>
 <!-- end badge -->
 </div>
@@ -87,6 +94,7 @@ Made with <a href="http://foundation.zurb.com/">Foundation</a> and <a href="http
 </div>
 </div>
 </footer>
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/qtip2/2.2.1/jquery.qtip.min.css" />
 <script src="{{ url_for('static', filename='js/vendor/jquery.js') }}"></script>
 <script src="http://cdnjs.cloudflare.com/ajax/libs/qtip2/2.2.1/basic/jquery.qtip.min.js"></script>
 <script src="{{ url_for('static', filename='js/unicode-tooltips.js') }}"></script>
@@ -96,6 +104,8 @@ Made with <a href="http://foundation.zurb.com/">Foundation</a> and <a href="http
         $('.an').each(add_annotation_tooltip);
         // For debugging tooltip HTML
         // $('.an').each(function() { $(this).qtip('toggle', true); });
+
+        $('#stack').attr('src', $('#stack').data('original'));
       });
     </script>
 </body>
