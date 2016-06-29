@@ -8,7 +8,7 @@
 <title>{% block title %}fugenjikko{% endblock %}</title>
 <meta name="description" content=""/>
 <meta name="author" content="Richard Harris"/>
-<meta name="copyright" content="Richard Harris (c) 2015"/>
+<meta name="copyright" content="Richard Harris (c) {{current_year}}"/>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/foundation.css') }}"/>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}"/>
 <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/qtip2/2.2.1/jquery.qtip.min.css"/>
@@ -72,13 +72,12 @@
 
 </div>
 
-
 <footer class="row">
 <div class="large-12 columns">
 <hr/>
 <div class="row">
 <div class="large-6 columns">
-<p>&copy; Richard Harris 2015.</p>
+<p>&copy; Richard Harris {{this_year}}.</p>
 </div>
 <div class="large-6 columns">
 <p class="right">

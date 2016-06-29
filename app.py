@@ -1,3 +1,4 @@
+import datetime
 from blog.page import Pages
 from flask import Flask, render_template, abort
 
@@ -8,6 +9,7 @@ pages = Pages()
 def inject_pages():
     """Supply information used base template to all pages"""
     return dict(
+        this_year = datetime.datetime.utcnow().year,
         all_categories = pages.category_counts(),
         all_tags = pages.tag_counts(),
     )
