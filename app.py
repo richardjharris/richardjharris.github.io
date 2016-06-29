@@ -1,5 +1,5 @@
 import datetime
-from blog.page import Pages
+from blog.pages import Pages
 from flask import Flask, render_template, abort
 
 app = Flask(__name__)
