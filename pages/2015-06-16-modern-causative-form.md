@@ -1,6 +1,7 @@
 title: The modern Japanese causative form ([使役形]{しえきけい})
 slug: modern-japanese-causative-form
 category: Japanese
+date: 2015-06-16
 
 I'm going to write about the _short_ causative and causative passive
 forms, which are very common in spoken Japanese. They are also easier to

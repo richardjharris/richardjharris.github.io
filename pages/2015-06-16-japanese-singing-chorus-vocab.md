@@ -2,6 +2,7 @@ title: Japanese [合唱]{がっしょう} (singing chorus) vocabulary
 slug: japanese-singing-chorus-vocabulary
 featured: Useful chorus vocabulary!
 category: Japanese
+date: 2015-06-16
 
 Some vocabulary that might help anyone joining a choir/chorus in Japan!
 
