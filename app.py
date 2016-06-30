@@ -8,6 +8,16 @@ os.environ['WERKZEUG_DEBUG_PIN'] = 'off'
 app = Flask(__name__)
 pages = None
 
+@app.before_first_request
+def init_pages_object():
+    global pages
+    pages = Pages()
+
+@app.before_request
+def reload_pages_object():
+    global pages
+    pages.reload()
+
 @app.context_processor
 def inject_pages():
     """Supply information used base template to all pages"""
@@ -16,14 +26,6 @@ def inject_pages():
         all_categories = pages.category_counts(),
         all_tags = pages.tag_counts(),
     )
-
-@app.before_request
-def reload_pages():
-    global pages
-    if pages:
-        pages.reload()
-    else:
-        pages = Pages()
 
 @app.route("/")
 def index():
