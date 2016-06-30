@@ -14,14 +14,13 @@ from html import escape as html_escape
 class Page(object):
     """Represents an article (content and metadata. Can be saved and loaded"""
     def __init__(self, title, body, path=None, category=None,
-            tags=None, date=None, summary=None, featured=None, slug=None):
+            tags=None, date=None, summary=None, slug=None):
         self.title = title
         self.body = body
         self.category = category
         self.tags = tags if tags else set()
         self.date = date if date else datetime.today()
         self.summary = summary
-        self.featured = featured
         self.path = path
         # If no slug provided, generate one automatically
         self.slug = slug or self._generate_slug()
@@ -37,6 +36,10 @@ class Page(object):
     @property
     def html(self):
         return render_page(self.body)
+
+    @property
+    def featured(self):
+        return ('featured' in self.tags)
 
     # For titles, we support a simple and explicit form of furigana
     # (less complex than the articles do)
@@ -104,7 +107,6 @@ class Page(object):
             tags = tags,
             date = date,
             summary = meta.get('summary', None),
-            featured = meta.get('featured', None),
             path = path,
         )
 
@@ -126,9 +128,6 @@ class Page(object):
 
             if self.summary:
                 meta['Summary'] = self.summary
-
-            if self.featured:
-                meta['Featured'] = self.featured
 
             w.write(yaml.dump(meta))
             w.write("\n")

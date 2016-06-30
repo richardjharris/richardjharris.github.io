@@ -1,6 +1,6 @@
 Title: All sorts of things you can get wrong in Unicode, and why
 Category: Unicode
-Tags: perl, unicode, stackoverflow
+Tags: perl, unicode, stackoverflow, featured
 Date: 2013-09-01 20:00
 
 If you've read this [StackOverflow post][stack], you know about all the things you can

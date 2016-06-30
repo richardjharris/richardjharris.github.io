@@ -1,8 +1,7 @@
 Title: Unicode In Five Minutes ⌚
 Category: Unicode
-Tags: unicode, faq, perl
+Tags: unicode, faq, perl, featured
 Date: 2013-04-12 21:08
-Featured: It introduces not only Unicode but normalization, regexes, sorting and some weird things other articles don't touch on.
 
 ## Why ##
 
