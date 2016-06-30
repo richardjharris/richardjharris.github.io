@@ -2,11 +2,14 @@ Keep flat files, I like history tracking. But needs a better way of managing
 the posts.
 
  - run the blog through performance analysis once live
- - pages need ordering and other stuff
  - better title
  - about page
  - improvements to 'featured'
+    - change featured to use a tag and remove header?
  - testing of mdx_reibun.py not complete... needs improvement maybe
+
+ - furigana is screwed up
+  - use stuff from Japanese stack exchange
 
 Inspiration 2: https://codeascraft.com/ (Etsy blog)
   infinascroller, I like a lot.
