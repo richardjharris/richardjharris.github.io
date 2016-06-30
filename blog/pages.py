@@ -2,6 +2,7 @@
 import os
 from .page import Page
 from collections import Counter
+from operator import attrgetter
 
 class Pages(object):
     """Filterable collection of pages under the given directory"""
@@ -26,12 +27,12 @@ class Pages(object):
                 pages.append(page)
             except Exception as err:
                 print("Error loading page " + path)
-                raise
+                raise(err)
 
         self._pages = pages
 
     def all(self):
-        return self._pages
+        return sorted(self._pages, key=attrgetter('date'), reverse=True)
 
     def featured(self):
         return self._filter(lambda p: p.featured)
