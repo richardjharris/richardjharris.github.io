@@ -5,7 +5,9 @@ itsdangerous==0.24
 Jinja2==2.8
 Markdown==2.6.6
 MarkupSafe==0.23
+python-dateutil==2.5.3
 PyYAML==3.11
 regex==2016.6.24
+six==1.10.0
 Unidecode==0.4.19
 Werkzeug==0.11.10
