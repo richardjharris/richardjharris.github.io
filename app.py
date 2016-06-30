@@ -37,7 +37,7 @@ def tag(tag):
 
 @app.route('/category/<string:category>/')
 def category(category):
-    # TODO: casing
+    category = category.title()
     catpages = pages.with_category(category)
     return render_template('category.html', pages=catpages, category=category)
 
