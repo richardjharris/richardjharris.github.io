@@ -1,8 +1,26 @@
-Keep flat files, I like history tracking. But needs a better way of managing
-the posts.
+ - furigana formatting (The big one. Just leave for now?)
+
+ - consider a grunt/gulp based pipeline to minimise all assets
+   before deployment.
+
+ - the tooltips on e.g. http://localhost:8000/modern-japanese-causative-form/
+   are not very easy to see.
+   - make same as unicode ones
+   - more distinguishing of tooltip and non-tooltip highlights 
+
+ - formatting of example sentences is bad (Grey, small)
+ - formatting of acronym tags should use tooltips and look like the others
 
  - unit tests (e.g. tags listing disappeared at one point,
    I didn't catch it)
+ 
+ - front page: better date format
+ - rss
+ - maybe disqus.
+
+ - actually deploy it.
+   - register domain if needed
+   - makefile or something -> github
 
  - run the blog through performance analysis once live
  - better title
@@ -11,44 +29,20 @@ the posts.
     - change featured to use a tag and remove header?
  - testing of mdx_reibun.py not complete... needs improvement maybe
 
- - furigana is screwed up
-  - use stuff from Japanese stack exchange
+ - infinite scrolling
+ - add date to slugs, just for safety. HOWEVER: date may change,
+   and slugs can never change, how to deal with that?
 
-Inspiration 2: https://codeascraft.com/ (Etsy blog)
-  infinascroller, I like a lot.
-  URL is /YYYY/MM/DD/q1-2016-site-performance-report(/#comments)
-
-
-Inspiration: http://jvns.ca/ (flat page + favourites)
- - Favourite page is split by year
-  Feb 10 in favourite, rust, talks
-  RSS feed (seems to just be one)
-  Flat list of date + article name
-  julia uses ./source/_posts/YYYY-MM-DD-title.md
-  ---
-  layout: post
-  title: "Julia blah"
-  date: ...
-  comments: true
-  categories:
-  ---
-
-  (Content goes here)
-
-  <!-- more -->
+ARTICLE IDEAS
 
 Dropbox/code/wine.pl -> article
 
-blog: implement categories
-  implement article first paragraph thing
-  tidy it up
-  responsive tables, maybe
-  also Dropbox/code/blog (stuff)
-
-Dropbox/blog - usable? Don't think so
-publish more modules
+Dropbox/blog - usable? Don't think so (old blog)
+publish more modules to github
 
 article about beanstalk
 
 unicode emoji in firefox
 maybe giving up on awesomevm and i3
+
+find my old list of ideas
