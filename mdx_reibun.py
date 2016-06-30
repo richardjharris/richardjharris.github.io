@@ -90,6 +90,8 @@ class ReibunProcessor(BlockProcessor):
                 p.text += line
             else:
                 # use the last br tag's 'tail' attribute
+                if prefix == 'en':
+                    p[-1].tail += ''
                 p[-1].tail += line
 
             if nl:
