@@ -29,7 +29,7 @@ class Page(object):
         # Normalise casing of category/tag
         if self.category:
             self.category = self.category.title()
-            self.tags &= set(self.category.lower())
+            self.tags |= set([self.category.lower()])
 
     def __repr__(self):
         return "Page(" + repr(self.slug) + ")"
