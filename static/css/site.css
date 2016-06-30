@@ -24,10 +24,11 @@ article rt {
     color: #292929;
 }
 article h1 rt {
-    top: 1rem;  /* why different? */
+    top: 1rem;
     font-size: 60%;
     color: #0078A0;
 }
+
 article h2 { font-size: 2rem }
 
 /* foundation makes table text smaller, not sure why */

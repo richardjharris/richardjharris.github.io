@@ -1,18 +1,11 @@
 <ul>
 {% for page in pages %}
     <li>
+        <span>{{ page.date.date() }}</span>
+        <span> {{ '*' if page.featured else '' }}</span>
         <a href="{{ url_for("page", slug=page.slug) }}">{{ page.title_text }}</a>
-    {% if page.tags|length %}
-        | Tagged:
-        {% for page_tag in page.tags %}
-            <a href="{{ url_for("tag", tag=page_tag) }}">{{ page_tag }}</a>
-        {% endfor %}
-    {% endif %}
-    {% if featured %}
-        <ul><li>{{ page.featured }}</li></ul>
-    {% endif %}
     </li>
 {% else %}
-    <li>No page.</li>
+    <li>No pages.</li>
 {% endfor %}
 </ul>
