@@ -2,6 +2,7 @@
 import os
 import regex
 import yaml
+import dateutil.parser
 from collections import OrderedDict
 from operator import methodcaller
 from itertools import takewhile
@@ -80,8 +81,10 @@ class Page(object):
         tags.discard('')
 
         date = meta.get('date', None)
-
-        if date is None:
+        if type(date) is str:
+            # YAML didn't parse this one (e.g. a date with no seconds)
+            date = dateutil.parser.parse(meta['date'], dayfirst=True, yearfirst=True)
+        else:
             # Try parsing the YYYY-MM-DD date out of the filename
             filename = os.path.basename(path)
             try:
