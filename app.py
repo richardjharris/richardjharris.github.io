@@ -1,9 +1,12 @@
 import datetime
+import os
 from blog.pages import Pages
 from flask import Flask, render_template, abort
 
+os.environ['WERKZEUG_DEBUG_PIN'] = 'off'
+
 app = Flask(__name__)
-pages = Pages()
+pages = None
 
 @app.context_processor
 def inject_pages():
@@ -16,7 +19,11 @@ def inject_pages():
 
 @app.before_request
 def reload_pages():
-    pages.reload()
+    global pages
+    if pages:
+        pages.reload()
+    else:
+        pages = Pages()
 
 @app.route("/")
 def index():
