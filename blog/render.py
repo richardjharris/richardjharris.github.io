@@ -1,19 +1,18 @@
 from markdown import Markdown
 
 EXTENSIONS = (
-    'reibun',
-    'abbr_once',  # if used, can't use 'extra'
-    'unichar',
-    'smart_strong',
+    'mdx_reibun',
+#    'mdx_abbr_once',  # if used, can't use 'extra'
+    'mdx_unichar',
     'footnotes',
     'def_list',
     'tables',
     'codehilite(guess_lang=False)',
     'smarty',
     'attr_list',
-    'autolink',
+    'mdx_autolink',
     'fenced_code',
-    'furigana',
+    'mdx_furigana',
 )
 
 def render_page(text):

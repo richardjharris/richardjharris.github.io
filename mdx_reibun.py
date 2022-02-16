@@ -43,7 +43,7 @@ class ReibunProcessor(BlockProcessor):
     """ Process definition lists"""
 
     def __init__(self, parser):
-        self._markdown_instance = Markdown(extensions=('furigana',))
+        self._markdown_instance = Markdown(extensions=('mdx_furigana',))
         super().__init__(parser)
 
     def test(self, parent, block):

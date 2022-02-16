@@ -40,7 +40,7 @@ FURIGANA_RE = regex.compile(r'''
 ''', flags=regex.VERBOSE | regex.DOTALL)
 
 class FuriganaExtension(markdown.Extension):
-    def extendMarkdown(self, md, md_globals):
+    def extendMarkdown(self, md):
         # We use regex (not re) so compile our own regex and
         # give Pattern's constructor a dummy.
         pat = FuriganaPattern('')
@@ -117,6 +117,7 @@ class FuriganaPattern(markdown.inlinepatterns.Pattern):
             # Fall back to full tag
             output = '<ruby>' + kanji + '<rt>' + furigana + '</rt></ruby>'
         return output
+
 
 def makeExtension(**kwargs):
     return FuriganaExtension(**kwargs)

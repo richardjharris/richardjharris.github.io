@@ -69,7 +69,7 @@ class Page(object):
         lines = open(path)
 
         # Read meta info until an empty line is encountered
-        meta = yaml.load('\n'.join(takewhile(methodcaller('strip'), lines)))
+        meta = yaml.load('\n'.join(takewhile(methodcaller('strip'), lines)), Loader=yaml.SafeLoader)
 
         # Lowercase (standardise) key case
         meta = dict((k.lower(), v) for k, v in meta.items())

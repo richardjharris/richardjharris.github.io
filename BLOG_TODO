@@ -1,3 +1,10 @@
+ - Update Werkzeug if needed.
+
+ - Lint and reformat code.
+
+ - Add all the static content from the original blog,
+   and redirects for old articles.
+
  - furigana formatting (The big one. Just leave for now?)
 
  - consider a grunt/gulp based pipeline to minimise all assets
@@ -15,12 +22,10 @@
    I didn't catch it)
  
  - front page: better date format
- - rss
- - maybe disqus.
 
  - actually deploy it.
-   - register domain if needed
    - makefile or something -> github
+   - Google Analytics
 
  - run the blog through performance analysis once live
  - better title
@@ -32,17 +37,4 @@
  - infinite scrolling
  - add date to slugs, just for safety. HOWEVER: date may change,
    and slugs can never change, how to deal with that?
-
-ARTICLE IDEAS
-
-Dropbox/code/wine.pl -> article
-
-Dropbox/blog - usable? Don't think so (old blog)
-publish more modules to github
-
-article about beanstalk
-
-unicode emoji in firefox
-maybe giving up on awesomevm and i3
-
-find my old list of ideas
+   just bake the date into the slug anyway. or at least the year.
