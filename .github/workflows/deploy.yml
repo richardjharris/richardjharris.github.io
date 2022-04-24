@@ -1,0 +1,31 @@
+name: Deploy to GitHub pages
+on:
+  push:
+    branches: [main]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - run: make deps
+
+    - name: Build static blog pageset
+      run: make build
+
+    - name: Init new repo and commit files
+      run: |
+        cd build
+        git init --initial-branch=main
+        git add -A
+        git config --local user.email "richardjharris@gmail.com"
+        git config --local user.name "Richard Harris"
+        git commit -m 'deploy'
+
+    - name: Force push to github pages repo
+      uses: ad-m/github-push-action@v0.5.0
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: main
+        force: true
+        directory: ./build
