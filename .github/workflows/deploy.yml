@@ -21,11 +21,9 @@ jobs:
         git config --local user.email "richardjharris@gmail.com"
         git config --local user.name "Richard Harris"
         git commit -m 'deploy'
-        # Allow branch to be pushed, even if owned by someone else
-        git config --global --add safe.directory /github/workspace/build
 
     - name: Force push to github pages repo
-      uses: ad-m/github-push-action@v0.5.0
+      uses: ad-m/github-push-action@master
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         branch: main
