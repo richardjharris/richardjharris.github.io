@@ -38,25 +38,33 @@ from markdown.blockprocessors import BlockProcessor
 from markdown.util import etree, AtomicString
 from itertools import takewhile
 import regex
+import json
 
 class ReibunProcessor(BlockProcessor):
     """ Process definition lists"""
 
     def __init__(self, parser):
-        self._markdown_instance = Markdown(extensions=('mdx_furigana',))
+        self._markdown_instance = Markdown(extensions=())
         super().__init__(parser)
 
-    def test(self, parent, block):
+    def test(self, _parent, block):
         return block.startswith('//')
 
     def run(self, parent, blocks):
-        block = blocks.pop(0)
+        try:
+            block = blocks.pop(0)
 
-        parts = regex.split(r'//-\n', block)
-        div = etree.SubElement(parent, 'div', {'class': 'breakdown'})
-        for part in parts:
-            self._make_breakdown(div, part)
-        return div
+            parts = regex.split(r'//-\n', block)
+            if not len(parts):
+                return False
+
+            div = etree.SubElement(parent, 'div', {'class': 'breakdown'})
+            for part in parts:
+                self._make_breakdown(div, part)
+            return True
+        except Exception as e:
+            print("Caught exception in Markdown parsing: {}".format(e))
+            return False
 
     def _make_breakdown(self, parent, block):
         # Japanese sentence comes first
@@ -65,7 +73,7 @@ class ReibunProcessor(BlockProcessor):
         en = self._build_sentence(div, '///', 'en', block)
 
         # Now handle annotations, if given
-        for annotation in regex.finditer('''
+        for annotation in regex.finditer(r'''
                 ^//(?P<num>\d+)(?P<highlight>\!)?\s+
                 (?P<word>.*?)(?: :(?P<display_word>.*?) )?\s+
                 (?P<detail>.*?)$
@@ -153,6 +161,9 @@ class ReibunProcessor(BlockProcessor):
 
     def _markdown(self, markup, strip_p=False):
         """Generate HTML from Markdown. Mostly used for furigana."""
+        # Disabling as this is a horrible hack
+        return markup
+
         html = self._markdown_instance.convert(markup)
         if strip_p:
             html = regex.fullmatch('<p>(.*?)</p>', html).group(1)
@@ -187,7 +198,7 @@ class ReibunProcessor(BlockProcessor):
         # brackets.
         detail = anno['detail']
         if detail.startswith('Infl'):
-            detail = regex.sub('^Infl\s*', '', detail)
+            detail = regex.sub(r'^Infl\s*', '', detail)
             html += '<ul class="inflection">'
             # 'Infl' lines may also contain a free-form explanation
             # after a pipe-character, so take that out.
@@ -221,6 +232,7 @@ class ReibunProcessor(BlockProcessor):
         word = regex.sub(r'\[(.*?)\]\{.*?\}', r'\1', word)
         word = regex.sub(r'\{.*?\}', r'', word)
         return word
+
 
 class ReibunExtension(Extension):
     """Add Japanese example sentence handling to Markdown."""

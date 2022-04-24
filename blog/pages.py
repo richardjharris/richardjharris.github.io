@@ -4,7 +4,7 @@ from .page import Page
 from collections import Counter
 from operator import attrgetter
 
-class Pages(object):
+class Pages:
     """Filterable collection of pages under the given directory"""
 
     def __init__(self, directory='pages/'):
@@ -24,7 +24,8 @@ class Pages(object):
                 else:
                     page = Page.load(path)
                     self._cache[path] = (page, mtime)
-                pages.append(page)
+                if page.visible:
+                    pages.append(page)
             except Exception as err:
                 print("Error loading page " + path)
                 raise(err)

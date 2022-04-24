@@ -1,13 +1,13 @@
 from markdown import Markdown
 
+# TODO: add back abbr_once is needed
 EXTENSIONS = (
     'mdx_reibun',
-#    'mdx_abbr_once',  # if used, can't use 'extra'
     'mdx_unichar',
     'footnotes',
     'def_list',
     'tables',
-    'codehilite(guess_lang=False)',
+    'codehilite',
     'smarty',
     'attr_list',
     'mdx_autolink',
@@ -15,7 +15,13 @@ EXTENSIONS = (
     'mdx_furigana',
 )
 
+EXTENSION_CONFIGS = {
+    'codehilite': {
+        'guess_lang': False,
+    },
+}
+
 def render_page(text):
     """Render Markdown article with custom extension list"""
-    md = Markdown(extensions=EXTENSIONS)
+    md = Markdown(extensions=EXTENSIONS, extension_configs=EXTENSION_CONFIGS)
     return md.convert(text)

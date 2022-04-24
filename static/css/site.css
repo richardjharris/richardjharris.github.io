@@ -1,386 +1,452 @@
 /* Is there a better way to override this? Grr... */
-h1, h2, h3, h4, h5, h6, body, button, .button, .side-nav {
-    /* Disabled as it causes text to be invisible while the webfont loads,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+body,
+button,
+.button,
+.side-nav {
+  /* Disabled as it causes text to be invisible while the webfont loads,
      * which makes it seem slow. */
-    /*font-family: 'Palanquin', sans-serif;*/
+  font-family: "IBM Plex Sans", sans-serif;
 }
 
-article pre { margin-bottom: 1em }
+h4 {
+  font-weight: bold;
+  font-size: 1.3rem;
+}
+
+pre tt code {
+  font-family: "IBM Plex Mono", monospace;
+}
+
+article pre {
+  margin-bottom: 1em;
+}
 
 /* Default h1 takes up too much space when wrapped. */
 article h1 {
-    font-size: 2.6rem;
-    line-height: 1;
-    margin-bottom: 1rem;
+  font-size: 2.6rem;
+  line-height: 1;
+  margin-bottom: 1rem;
 }
 /* Attempt to improve furigana look */
 ruby > rt {
-    top: 0.5rem;
-    position: relative;
-    margin-top: -1rem;
-    font-size: 70%;
+  top: 0.5rem;
+  position: relative;
+  margin-top: -1rem;
+  font-size: 70%;
 }
 article rt {
-    color: #292929;
+  color: #292929;
 }
 article h1 rt {
-    top: 1rem;
-    font-size: 60%;
-    color: #0078A0;
+  top: 1rem;
+  font-size: 60%;
+  color: #0078a0;
 }
 
-article h2 { font-size: 2rem }
+article h2 {
+  font-size: 2rem;
+}
 
 /* foundation makes table text smaller, not sure why */
-table tr th, table tr td {
-    font-size: 1rem;
+table tr th,
+table tr td {
+  font-size: 1rem;
 }
 
 /* dd is not indented by default */
 /* 3em is a bit much for small screens */
-dd { margin-left: 2rem }
+dd {
+  margin-left: 2rem;
+}
 
-code, div.codehilite pre { font-size: 0.9rem }
+code {
+  font-size: 0.9rem;
+  border-radius: 5px;
+}
+
+div.codehilite pre {
+  display: block;
+  background-color: #f8f8f8;
+  border-color: #dfdfdf;
+  border-style: solid;
+  border-width: 1px;
+  color: #333333;
+  font-family: Consolas, "Liberation Mono", Courier, monospace;
+  font-weight: normal;
+  padding: 0.5rem;
+  border-radius: 5px;
+  overflow-x: auto;
+}
+
+/* Override Foundation CSS here (not ideal). this can go away if cohilite generates sensible HTML */
+div.codehilite pre code {
+  border: none;
+  padding: 0;
+  font-size: 0.8rem;
+}
+
+div.codehilite pre code span {
+  line-height: 1.1;
+}
 
 /* Side nav tweaks */
-.sidebar h5 { font-weight: bold }
-ul.side-nav li { font-size: 1rem }
-ul.taglist li a:not(.button) { padding: 0px 0.875rem }
+.sidebar h5 {
+  font-weight: bold;
+}
+ul.side-nav li {
+  font-size: 1rem;
+}
+ul.taglist li a:not(.button) {
+  padding: 0px 0.875rem;
+}
 
 /** Japanese pitch accent markers **/
-span.tone-h{
-    border-top:1px solid red;
+span.tone-h {
+  border-top: 1px solid red;
 }
 
-span.tone-l-change{
-    border:solid red;
-    border-width:0 0 1px 1px;
+span.tone-l-change {
+  border: solid red;
+  border-width: 0 0 1px 1px;
 }
 
-span.tone-l{
-    border-bottom:1px solid red;
+span.tone-l {
+  border-bottom: 1px solid red;
 }
 
-span.tone-h-change{
-    border:solid red;
-    border-width:1px 0 0 1px;
+span.tone-h-change {
+  border: solid red;
+  border-width: 1px 0 0 1px;
 }
 
 /** Example sentence and breakdown **/
 /** Based on Foundation blockquote style **/
 div.example-sentence {
-    margin: 0px 0px 1.25rem;
-    padding: 0.5625rem 1.25rem 0px 1.1875rem;
-    border-left: 1px solid #ddd;
+  margin: 0px 0px 1.25rem;
+  padding: 0.5625rem 1.25rem 0px 1.1875rem;
+  border-left: 1px solid #ddd;
 }
 
 /** Multiple sentences inside a breakdown block are handled
  ** differently
  **/
 div.breakdown {
-    margin: 0px 0px 1.25rem;
+  margin: 0px 0px 1.25rem;
 }
 div.breakdown div.example-sentence {
-    margin: 0px;
+  margin: 0px;
 }
 /* Whether furigana is present or not, normalise height */
 div.breakdown div.example-sentence p {
-    padding-top: 0.2rem;
+  padding-top: 0.2rem;
 }
 
 div.example-sentence p {
-    margin-bottom: 0px;
-    color: #6f6f6f;
+  margin-bottom: 0px;
+  color: #6f6f6f;
 }
 div.example-sentence rt {
-    color: #6f6f6f;
+  color: #6f6f6f;
 }
 div.example-sentence p.en {
-    font-style: italic;
-    font-size: 0.8125rem;
-    color: #555;
+  font-style: italic;
+  font-size: 0.8125rem;
+  color: #555;
 }
 .an {
-    border-bottom: 2px solid transparent;
-    border-radius: 0.3rem;
-    background: rgb(245, 244, 239);
-    padding: 0rem 0.2rem;
-    border-color: transparent;
-    transition: background-color 0.3s, border-color 0.3s;
+  border-bottom: 2px solid transparent;
+  border-radius: 0.3rem;
+  background: rgb(245, 244, 239);
+  padding: 0rem 0.2rem;
+  border-color: transparent;
+  transition: background-color 0.3s, border-color 0.3s;
 }
 .an-highlight {
-    background: #fff6ca;
+  background: #fff6ca;
 }
 .an-hover {
-    border-bottom: 2px solid #B9AE7A;
-    background: #FBEA96;
+  border-bottom: 2px solid #b9ae7a;
+  background: #fbea96;
 }
 
 /** Unicode tooltips **/
-.unichar, .uni-tooltip, .an-tooltip, .unicharbox {
-    border-radius: 0.2rem;
-    border: 1px solid rgb(225, 214, 209);
-    background: rgb(245, 244, 239);
-    box-shadow: 1px 1px 0px rgb(235, 224, 239);
+.unichar,
+.uni-tooltip,
+.an-tooltip,
+.unicharbox {
+  border-radius: 0.2rem;
+  border: 1px solid rgb(225, 214, 209);
+  background: rgb(245, 244, 239);
+  box-shadow: 1px 1px 0px rgb(235, 224, 239);
 }
-.unichar { padding: 0.0rem 0.4rem }
+.unichar {
+  padding: 0rem 0.4rem;
+}
 .uni-tooltip .qtip-content {
-    padding: 0.4rem;
-    color: black;
-    font-size: 1.2rem;
-    line-height: 1.5rem;
+  padding: 0.4rem;
+  color: black;
+  font-size: 1.2rem;
+  line-height: 1.5rem;
 }
 .an-tooltip h3 {
-    font-size: 1.2rem;
+  font-size: 1.2rem;
 }
 .an-tooltip h3 rt {
-    font-size: 0.8rem;
-    margin-bottom: -0.2rem;
+  font-size: 0.8rem;
+  margin-bottom: -0.2rem;
 }
 .an-tooltip hr {
-    margin: 0px;
-    margin-bottom: 0.4rem;
+  margin: 0px;
+  margin-bottom: 0.4rem;
 }
-.an-tooltip p, .an-tooltip ul,.an-tooltip li {
-    font-size: 0.8rem;
-    margin-bottom: 0.2rem;
+.an-tooltip p,
+.an-tooltip ul,
+.an-tooltip li {
+  font-size: 0.8rem;
+  margin-bottom: 0.2rem;
 }
 ul.inflection ul {
-    list-style: none;
-    margin-left: 0;
-    padding-left: 0;
+  list-style: none;
+  margin-left: 0;
+  padding-left: 0;
 }
 ul.inflection li {
-    list-style: none;
-    text-indent: -1.2rem;
-    color: #444;
+  list-style: none;
+  text-indent: -1.2rem;
+  color: #444;
 }
 ul.inflection span.word {
-    color: black;
+  color: black;
 }
 ul.inflection li:first-child:before {
-    padding-left: 0.1rem;
+  padding-left: 0.1rem;
 }
 ul.inflection li:not(:first-child):before {
-/*    content: "➥";*/
-    color: black;
-    content: "↳";
-    padding-left: 0.3rem;
-    padding-right: 0.3rem;
+  /*    content: "➥";*/
+  color: black;
+  content: "↳";
+  padding-left: 0.3rem;
+  padding-right: 0.3rem;
 }
 
 .unicharbox {
-    padding: 0.5rem;
-    float: left;
-    font-size: 2rem;
-    margin: 0.3rem;
-    margin-right: 0.5rem;
-    box-shadow: inset 1px 1px 0px rgb(235, 224, 239);
+  padding: 0.5rem;
+  float: left;
+  font-size: 2rem;
+  margin: 0.3rem;
+  margin-right: 0.5rem;
+  box-shadow: inset 1px 1px 0px rgb(235, 224, 239);
 }
 
 /** Pygments **/
 .hll {
-background-color:#eee;
+  background-color: #eee;
 }
 .c {
-color:#408090;
-font-style:italic;
+  color: #408090;
+  font-style: italic;
 }
 .err {
-border:1px solid #FF0000;
+  border: 1px solid #ff0000;
 }
 .k {
-color:#007020;
-font-weight:bold;
+  color: #007020;
+  font-weight: bold;
 }
 .o {
-color:#666666;
+  color: #666666;
 }
 .cm {
-color:#408090;
-font-style:italic;
+  color: #408090;
+  font-style: italic;
 }
 .cp {
-color:#007020;
+  color: #007020;
 }
 .c1 {
-color:#408090;
-font-style:italic;
+  color: #408090;
+  font-style: italic;
 }
 .cs {
-background-color:#FFF0F0;
-color:#408090;
+  background-color: #fff0f0;
+  color: #408090;
 }
 .gd {
-color:#A00000;
+  color: #a00000;
 }
 .ge {
-font-style:italic;
+  font-style: italic;
 }
 .gr {
-color:#FF0000;
+  color: #ff0000;
 }
 .gh {
-color:#000080;
-font-weight:bold;
+  color: #000080;
+  font-weight: bold;
 }
 .gi {
-color:#00A000;
+  color: #00a000;
 }
 .go {
-color:#303030;
+  color: #303030;
 }
 .gp {
-color:#C65D09;
-font-weight:bold;
+  color: #c65d09;
+  font-weight: bold;
 }
 .gs {
-font-weight:bold;
+  font-weight: bold;
 }
 .gu {
-color:#800080;
-font-weight:bold;
+  color: #800080;
+  font-weight: bold;
 }
 .gt {
-color:#0040D0;
+  color: #0040d0;
 }
 .kc {
-color:#007020;
-font-weight:bold;
+  color: #007020;
+  font-weight: bold;
 }
 .kd {
-color:#007020;
-font-weight:bold;
+  color: #007020;
+  font-weight: bold;
 }
 .kn {
-color:#007020;
-font-weight:bold;
+  color: #007020;
+  font-weight: bold;
 }
 .kp {
-color:#007020;
+  color: #007020;
 }
 .kr {
-color:#007020;
-font-weight:bold;
+  color: #007020;
+  font-weight: bold;
 }
 .kt {
-color:#902000;
+  color: #902000;
 }
 .m {
-color:#208050;
+  color: #208050;
 }
 .s {
-color:#4070A0;
+  color: #4070a0;
 }
 .na {
-color:#4070A0;
+  color: #4070a0;
 }
 .nb {
-color:#007020;
+  color: #007020;
 }
 .nc {
-color:#0E84B5;
-font-weight:bold;
+  color: #0e84b5;
+  font-weight: bold;
 }
 .no {
-color:#60ADD5;
+  color: #60add5;
 }
 .nd {
-color:#555555;
-font-weight:bold;
+  color: #555555;
+  font-weight: bold;
 }
 .ni {
-color:#D55537;
-font-weight:bold;
+  color: #d55537;
+  font-weight: bold;
 }
 .ne {
-color:#007020;
+  color: #007020;
 }
 .nf {
-color:#06287E;
+  color: #06287e;
 }
 .nl {
-color:#002070;
-font-weight:bold;
+  color: #002070;
+  font-weight: bold;
 }
 .nn {
-color:#0E84B5;
-font-weight:bold;
+  color: #0e84b5;
+  font-weight: bold;
 }
 .nt {
-color:#062873;
-font-weight:bold;
+  color: #062873;
+  font-weight: bold;
 }
 .nv {
-color:#BB60D5;
+  color: #bb60d5;
 }
 .ow {
-color:#007020;
-font-weight:bold;
+  color: #007020;
+  font-weight: bold;
 }
 .w {
-color:#BBBBBB;
+  color: #bbbbbb;
 }
 .mf {
-color:#208050;
+  color: #208050;
 }
 .mh {
-color:#208050;
+  color: #208050;
 }
 .mi {
-color:#208050;
+  color: #208050;
 }
 .mo {
-color:#208050;
+  color: #208050;
 }
 .sb {
-color:#4070A0;
+  color: #4070a0;
 }
 .sc {
-color:#4070A0;
+  color: #4070a0;
 }
 .sd {
-color:#4070A0;
-font-style:italic;
+  color: #4070a0;
+  font-style: italic;
 }
 .s2 {
-color:#4070A0;
+  color: #4070a0;
 }
 .se {
-color:#4070A0;
-font-weight:bold;
+  color: #4070a0;
+  font-weight: bold;
 }
 .sh {
-color:#4070A0;
+  color: #4070a0;
 }
 .si {
-color:#70A0D0;
-font-style:italic;
+  color: #70a0d0;
+  font-style: italic;
 }
 .sx {
-color:#C65D09;
+  color: #c65d09;
 }
 .sr {
-color:#235388;
+  color: #235388;
 }
 .s1 {
-color:#4070A0;
+  color: #4070a0;
 }
 .ss {
-color:#517918;
+  color: #517918;
 }
 .bp {
-color:#007020;
+  color: #007020;
 }
 .vc {
-color:#BB60D5;
+  color: #bb60d5;
 }
 .vg {
-color:#BB60D5;
+  color: #bb60d5;
 }
 .vi {
-color:#BB60D5;
+  color: #bb60d5;
 }
 .il {
-color:#208050;
+  color: #208050;
 }

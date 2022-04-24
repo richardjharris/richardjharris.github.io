@@ -3,14 +3,9 @@ import unicodedata
 import types
 import sys
 
-try:
-    from htmlentitydefs import name2codepoint
-    _unicode = unicode
-    _unicode_type = types.UnicodeType
-except ImportError:
-    from html.entities import name2codepoint
-    _unicode = str
-    _unicode_type = str
+from html.entities import name2codepoint
+_unicode = str
+_unicode_type = str
 
 import unidecode
 
@@ -22,10 +17,10 @@ __all__ = ['slugify']
 CHAR_ENTITY_REXP = re.compile('&(%s);' % '|'.join(name2codepoint))
 
 # decimal character reference
-DECIMAL_REXP = re.compile('&#(\d+);')
+DECIMAL_REXP = re.compile(r'&#(\d+);')
 
 # hexadecimal character reference
-HEX_REXP = re.compile('&#x([\da-fA-F]+);')
+HEX_REXP = re.compile(r'&#x([\da-fA-F]+);')
 
 REPLACE1_REXP = re.compile(r'[\']+')
 REPLACE2_REXP = re.compile(r'[^-a-z0-9]+')

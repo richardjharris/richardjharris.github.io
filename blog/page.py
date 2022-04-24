@@ -3,7 +3,7 @@ import os
 import regex
 import yaml
 import dateutil.parser
-from collections import OrderedDict
+import collections
 from operator import methodcaller
 from itertools import takewhile
 from datetime import datetime
@@ -11,10 +11,10 @@ from slugify import slugify
 from blog.render import render_page
 from html import escape as html_escape
 
-class Page(object):
+class Page:
     """Represents an article (content and metadata. Can be saved and loaded"""
     def __init__(self, title, body, path=None, category=None,
-            tags=None, date=None, summary=None, slug=None):
+            tags=None, date=None, summary=None, slug=None, visible=True):
         self.title = title
         self.body = body
         self.category = category
@@ -24,6 +24,7 @@ class Page(object):
         self.path = path
         # If no slug provided, generate one automatically
         self.slug = slug or self._generate_slug()
+        self.visible = visible
 
         # Normalise casing of category/tag
         if self.category:
@@ -108,8 +109,10 @@ class Page(object):
             date = date,
             summary = meta.get('summary', None),
             path = path,
+            visible = 'hidden' not in meta,
         )
 
+    # TODO(rjh) Not currently tested.
     def save(self):
         with open(self.path, 'w') as handle:
             meta = collections.OrderedDict()
@@ -121,7 +124,7 @@ class Page(object):
             if self.tags:
                 meta['Tags'] = ', '.join(self.tags)
 
-            if self.date.strfime('%H:%m') == '00:00':
+            if self.date.strftime('%H:%m') == '00:00':
                 meta['Date'] = self.date.strftime('%Y-%m-%d')
             else:
                 meta['Date'] = self.date.strftime('%Y-%m-%d %H:%m')
@@ -129,9 +132,12 @@ class Page(object):
             if self.summary:
                 meta['Summary'] = self.summary
 
-            w.write(yaml.dump(meta))
-            w.write("\n")
-            w.write(self.body)
+            if not self.visible:
+                meta['Hidden'] = 'true'
+
+            handle.write(yaml.dump(meta))
+            handle.write("\n")
+            handle.write(self.body)
 
     def _generate_slug(self):
         return slugify(self.title_reading, max_length=70, word_boundary=True)

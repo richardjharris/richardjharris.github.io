@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from flask.ext.frozen import Freezer
+from flask_frozen import Freezer
 from app import app
 
 freezer = Freezer(app)

@@ -23,7 +23,10 @@ brace:
 ! - char cannot be rendered, use number instead, # ignored
 """
 
-import markdown, re, unicodedata
+import markdown
+import re
+import unicodedata
+import markdown.inlinepatterns
 from markdown.util import etree
 
 UNICHAR_RE = r'u\{\s*(.*?)([#\'+!]*)\s*\}'

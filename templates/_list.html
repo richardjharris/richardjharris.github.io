@@ -2,7 +2,7 @@
 {% for page in pages %}
     <li>
         <span>{{ page.date.date() }}</span>
-        <span> {{ '*' if page.featured else '' }}</span>
+        <span> {{ '★' if page.featured else '' }}</span>
         <a href="{{ url_for("page", slug=page.slug) }}">{{ page.title_text }}</a>
     </li>
 {% else %}

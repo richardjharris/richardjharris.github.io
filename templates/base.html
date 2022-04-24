@@ -2,7 +2,10 @@
 <!--[if IE 9]><html class="lt-ie10" lang="en" > <![endif]-->
 <html class="no-js" lang="en">
 <head>
-<!-- <link href='http://fonts.googleapis.com/css?family=Palanquin' rel='stylesheet' type='text/css'> -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;600&family=IBM+Plex+Sans:wght@300;600&display=swap" rel="stylesheet">
+
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>{% block title %}richardharris.github.io{% endblock %}</title>
@@ -11,8 +14,6 @@
 <meta name="copyright" content="Richard Harris (c) {{current_year}}"/>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/foundation.css') }}"/>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}"/>
-<!-- modernizer slows down the page, and we're not using it -->
-<!-- <script src="{{ url_for('static', filename='js/vendor/modernizr.js') }}"></script> -->
 </head>
 <body>
 

@@ -39,10 +39,10 @@ class AutoLinks(Pattern):
     def url(self, label, fragment):
         url = ''
         if re.match(r'^perl\w+$', label):
-            url = 'http://perldoc.perl.org/' + label + '.html'
+            url = 'https://perldoc.perl.org/' + label + '.html'
         elif re.match(r'^perlfunc:(\w+)$', label):
             func = label.split(':')[1]
-            url = 'http://perldoc.perl.org/functions/' + func + '.html'
+            url = 'https://perldoc.perl.org/functions/' + func + '.html'
             label = func
         elif re.match(r'^w:(.*?)$', label):
             page = label.split(':')[1]

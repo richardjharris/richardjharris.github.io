@@ -6,12 +6,7 @@ from flask import Flask, render_template, abort
 os.environ['WERKZEUG_DEBUG_PIN'] = 'off'
 
 app = Flask(__name__)
-pages = None
-
-@app.before_first_request
-def init_pages_object():
-    global pages
-    pages = Pages()
+pages = Pages()
 
 @app.before_request
 def reload_pages_object():
