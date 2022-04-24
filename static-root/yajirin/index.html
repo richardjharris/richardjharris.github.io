@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Yajirin</title>
+    </head>
+    <body>
+        <div id="canvasContainer" style="border: 2px solid black; display: inline-block">
+            <canvas id="canvas" width="300" height="300" style="display: block"></canvas>
+        </div>
+        <div>
+            <h3>Rules of Yajirin</h3>
+            <ul>
+                <li>Draw a line to make a single loop.
+                <li>Squares with numbers and arrows tell you how many black squares are between that square and the edge of the grid.
+                <li>Other squares must either have a line running through it, or be blacked out.
+                <li>The loop cannot branch or cross over itself.
+                <li>You cannot have two black squares touching each other. (Diagonal is OK)
+            </ul>
+            <h3>Controls</h3>
+            <ul>
+                <li>Click in the middle of a square to toggle between blank, black and 'dot'
+                <li>'Dot' can be used as a hint to indicate which squares <i>must</i> contain a line and cannot be blacked out.
+                <li>Click between squares to add or remove a line.
+                
+        </div>
+        <script type="module">
+            'use strict';
+            import Yajirin from "./yajirin.js";
+
+            let dirs = Yajirin.dirs;
+
+            const puzzle = {
+                width: 10,
+                height: 10,
+                clues: [
+                    // x, y, dir, number (0-indexed)
+                    [2,0,dirs.LEFT,0],
+                    [2,2,dirs.LEFT,1],
+                    [6,2,dirs.RIGHT,1],
+                    [8,2,dirs.RIGHT,1],
+                    [5,3,dirs.UP,2],
+                    [2,4,dirs.DOWN,3],
+                    [8,4,dirs.UP,0],
+                    [6,6,dirs.UP,2],
+                    [8,6,dirs.UP,1],
+                    [4,8,dirs.RIGHT,2],
+                    [7,9,dirs.RIGHT,0],
+                ],
+            };
+
+            const tutorial = {
+                width: 7,
+                height: 7,
+                clues: [
+                    [6,0,dirs.LEFT,2],
+                    [0,3,dirs.DOWN,0],
+                    [2,3,dirs.UP,2],
+                    [2,4,dirs.DOWN,0],
+                    [4,4,dirs.UP,1],
+                    [5,4,dirs.RIGHT,1],
+                ],
+            };
+
+            window.y = new Yajirin(document.getElementById("canvas"));
+            y.onSolved = function() {
+                alert("Congratulations! You have solved the puzzle!");
+            };
+            y.loadPuzzle(tutorial);
+        </script>
+    </body>
+</html>
