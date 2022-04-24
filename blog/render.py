@@ -1,6 +1,5 @@
 from markdown import Markdown
 
-# TODO: add back abbr_once is needed
 EXTENSIONS = (
     'mdx_reibun',
     'mdx_unichar',
@@ -13,6 +12,7 @@ EXTENSIONS = (
     'mdx_autolink',
     'fenced_code',
     'mdx_furigana',
+    'abbr',
 )
 
 EXTENSION_CONFIGS = {
