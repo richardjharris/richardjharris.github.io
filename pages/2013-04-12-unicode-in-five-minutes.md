@@ -340,22 +340,22 @@ unified by Han Unification.
 They are also used for somewhat more esoteric things, such as [serif versions
 of mathematical operators][serif].
 
-[over30]: http://www.unicode.org/history/unicode88.pdf
-[uni62]: http://www.unicode.org/versions/Unicode6.2.0/
-[equiv]: http://unicode.org/reports/tr15/
-[nfc faq]: http://www.macchiato.com/unicode/nfc-faq
+[over30]: https://www.unicode.org/history/unicode88.pdf
+[uni62]: https://www.unicode.org/versions/Unicode6.2.0/
+[equiv]: https://unicode.org/reports/tr15/
+[nfc faq]: https://www.macchiato.com/unicode/nfc-faq
 [tchrist]: http://stackoverflow.com/a/6163129/74496
-[tr10]: http://www.unicode.org/reports/tr10/
-[tr14]: http://www.unicode.org/reports/tr14/
-[serif]: http://www.unicode.org/Public/6.0.0/ucd/StandardizedVariants.html
-[wikiidn]: http://en.wikipedia.org/wiki/IDN_homograph_attack
-[RFC 3491]: http://tools.ietf.org/html/rfc3491
-[usenet]: http://www.nntp.perl.org/group/perl.perl5.porters/2011/10/msg178687.html
-[unitutvowel]: http://www.perl.com/pub/2012/05/perlunicook-match-unicode-grapheme-cluster-in-regex.html
-[varsel]: http://babelstone.blogspot.co.uk/2007/06/secret-life-of-variation-selectors.html
-[serif]: http://www.unicode.org/Public/6.0.0/ucd/StandardizedVariants.html
-[hanexamples]: http://en.wikipedia.org/wiki/Han_unification#Examples_of_language_dependent_characters
-[Symbola]: http://users.teilar.gr/~g1951d/
+[tr10]: https://www.unicode.org/reports/tr10/
+[tr14]: https://www.unicode.org/reports/tr14/
+[serif]: https://www.unicode.org/Public/6.0.0/ucd/StandardizedVariants.html
+[wikiidn]: https://en.wikipedia.org/wiki/IDN_homograph_attack
+[RFC 3491]: https://tools.ietf.org/html/rfc3491
+[usenet]: https://www.nntp.perl.org/group/perl.perl5.porters/2011/10/msg178687.html
+[unitutvowel]: https://www.perl.com/pub/2012/05/perlunicook-match-unicode-grapheme-cluster-in-regex.html
+[varsel]: https://babelstone.blogspot.co.uk/2007/06/secret-life-of-variation-selectors.html
+[serif]: https://www.unicode.org/Public/6.0.0/ucd/StandardizedVariants.html
+[hanexamples]: https://en.wikipedia.org/wiki/Han_unification#Examples_of_language_dependent_characters
+[Symbola]: https://users.teilar.gr/~g1951d/
 *[CJKV]: Chinese, Japanese, Korean and Vietnamese
 *[NFC]: Normalisation Form C (canonical decomposition + canonical composition)
 *[NFD]: Normalization Form D (canonical decomposition)
