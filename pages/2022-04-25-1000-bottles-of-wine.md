@@ -1,5 +1,6 @@
 Title: 1,000 Bottles of Wine
 Category: python, programming, problems
+Date: 2022-04-25 19:47
 
 So there's this king. Someone breaks into his wine cellar which stores
 1,000 bottles of wine. This person proceeds to poison one of the
@@ -12,8 +13,8 @@ about 3 weeks to take effect, and any amount of it will kill whoever
 drinks it. How can he figure out which bottle was poisoned in time for
 the party?
 
-Solving this problem
---------------------
+Solving the problem
+-------------------
 
 
 
@@ -70,7 +71,7 @@ Solving this problem
         # enumerate(wines) gives us a numbering from 0 to 999. We then convert
         # to binary.
         # The first wine is 0 (binary 0000000000) - nobody drinks it.
-        # The second is 1 (binary 0000000001). Reading frm right to left, only
+        # The second is 1 (binary 0000000001). Reading from right to left, only
         #  the first servant will drink it.
         # The last wine 999 is 1111101000 in binary. Reading from right to
         # left, servants 4,6,7,8,9 and 10 will drink it.
