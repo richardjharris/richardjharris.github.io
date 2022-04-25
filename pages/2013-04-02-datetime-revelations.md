@@ -1,6 +1,6 @@
 Title: Three revelations about DateTime (and why simpler is sometimes better)
 Date: 2013-04-02 11:00
-Category: Perl
+Category: Programming
 Tags: perl, datetime
 
 [[DateTime::]] is an amazing module, and our go-to module at work for any date

@@ -1,5 +1,5 @@
 Title: Unicode In Five Minutes ⌚
-Category: Unicode
+Category: Programming
 Tags: unicode, faq, perl, featured
 Date: 2013-04-12 21:08
 

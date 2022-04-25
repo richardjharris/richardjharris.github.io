@@ -1,5 +1,5 @@
 Title: All sorts of things you can get wrong in Unicode, and why
-Category: Unicode
+Category: Programming
 Tags: perl, unicode, stackoverflow, featured
 Date: 2013-09-01 20:00
 

@@ -1,6 +1,6 @@
 Title: A fun gotcha with magic <>
 Date: 2013-09-13 10:00
-Category: Perl
+Category: Programming
 Tags: perl, pbp, gotcha
 Slug: fun-gotcha-with-magic-diamond
 

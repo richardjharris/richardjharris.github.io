@@ -1,6 +1,6 @@
 Title: How I use unless
 Date: 2013-09-01 20:00
-Category: Perl
+Category: Programming
 Tags: perl, pbp
 
 `unless` is a language construct that I think sums up Perl in many ways. In the right

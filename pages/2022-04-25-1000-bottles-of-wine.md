@@ -1,5 +1,6 @@
 Title: 1,000 Bottles of Wine
-Category: python, programming, problems
+Category: Programming
+Tags: python, programming, problems
 Date: 2022-04-25 19:47
 
 So there's this king. Someone breaks into his wine cellar which stores

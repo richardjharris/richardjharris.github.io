@@ -1,6 +1,6 @@
 Title: Exposing git committer habits with ANSI::Heatmap
 Date: 2013-03-23 22:02
-Category: Perl
+Category: Programming
 Tags: perl, git, heatmap, cpan
 Summary: Heatmaps in your shell! Find out who commits at crazy o'clock!
 
