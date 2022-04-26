@@ -14,7 +14,9 @@ Habits that form part of your identity are easier to do as they provide intrinsi
 
 Make a list of your habits and consider if it "casts a vote towards your desired identity". Give them scores. Consider for example your list of actions in the morning after you wake up - can you adjust them to get yourself closer to your desired identity? Should anything be added or removed?
 
-More examples: "read a book" vs. "I am a reader". "make my bed" vs. "I am an organised person". "go to the gym even when it rains" vs. "I am committed to my fitness" or "I enjoy exercise".
+More examples: "read a book" vs. "I am a reader"  
+"make my bed" vs. "I am an organised person"  
+"go to the gym even when it rains" vs. "I am committed to my fitness" or "I enjoy exercise"
 
 It can often be useful to replace beliefs - e.g. get rid of "I'm not a morning person", if it doesn't help you get closer to your desired outcome.
 
@@ -35,7 +37,7 @@ This is based on the Diderot effect (easier to do something after you've done so
 You can stack repeatedly. You can also stack before an existing habit, or during. For example listening to music while vacuuming the room.
 
 #### Environment
-Make 'right' thing as easy to do as possible. If you want to practice guitar, put the guitar in on your sofa. .
+Make 'right' thing as easy to do as possible. If you want to practice guitar, put the guitar near the sofa so you pick it up.
 
 Make 'wrong' things harder to do. Hide food away if dieting; delete apps from your phone; stop reading product reviews if you spend too much money; unplug and hide devices. Consider not just the bad habit but also the cues and environment that lead towards it.
 
