@@ -14,7 +14,7 @@ Word | Definition
 強弱{きょうじゃく} | dynamics (loudness/quietness) of sound. The general idea of not singing everything at the same volume, but adjusting it to fit the mood and style of the song.
 合わせる{あわせる} | to match/harmonise your voice with the rest of the group
 盛り上がる{もりあがる} | raising voice and tension (e.g. leading up to chorus or climax of song)
-主線{しゅせん} | the leading part of the song (can change over time | sometimes the male part is leading, sometimes female)
+主線{しゅせん} | the leading part of the song (can change over time, e.g. from male part to female part)
 声が[出]{だ}せない・[出]{で}ない | (koe ga dasenai / denai) voice won't come out (tired/ill)
 歌詞{かし} | lyrics (pronounced かし{LH})
 楽譜{がくふ} | sheet music (score)
@@ -24,13 +24,14 @@ Word | Definition
 女声{じょせい}, 男声{だんせい} | female, male voice/part
 ハーモニー, 和声{わせい}  | harmony. note 和声 is わせい{HLL} (和製 is わせい{LHH})
 ビブラート | vibrato (generally discouraged in a choir setting)
-キー- key (of music)
+キー | key (of music)
 吸う{すう}、吐く{はく} | to breathe in and breathe out (often heard as 吸って、吐いて when breathing together)
 発声練習{はっせいれんしゅう} | vocal exercises (e.g. scales or singing tongue-twisters)
 ファルセット, 裏声{うらごえ} | falsetto
 抜く{ぬく} | to sing a (high) note in falsetto. A hint of falsetto is 抜き気味{ぬきぎみ}
 地声{じごえ} | natural voice
-胸声{きょうせい}, 頭声{とうせい} | chest voice, head voice
+胸声{きょうせい} | chest voice
+頭声{とうせい} | head voice
 声域{せいいき}(が[広い]{ひろい}) | voice range (is wide)
 伸ばす{のばす} | to hold a note
 ビリビリ | state of your throat when forcing out a poor-sounding high note
