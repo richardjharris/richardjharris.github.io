@@ -12,3 +12,13 @@ pageset root.
 
 The static pageset is built and deployed to Github Pages using [Github
 Actions](https://github.com/richardjharris/richardjharris.github.io/blob/main/.github/workflows/deploy.yml).
+
+### Makefile targets
+
+**deps**: install python dependencies (in a venv if you like)
+
+**build**: build static pageset in `build` directory.
+
+**serve**: serve the website as a Flask app and open browser. It will pick up local changes on browser refresh.
+
+**deploy**: manually deploys website to Github Pages. Normally, this is done using Gitlab Actions on push.

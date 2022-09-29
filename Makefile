@@ -1,5 +1,7 @@
 .PHONY: build serve deps deploy
 
+all: build
+
 deps:
 	pip install -r requirements.txt
 
