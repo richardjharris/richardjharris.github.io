@@ -58,7 +58,7 @@ richardjharris</a><small>.github.io</small></h1>
 <h5>Tags</h5>
 <ul class="side-nav taglist">
 {% for tag, count in all_tags.most_common() %}
-<li><a href="{{ url_for('tag', tag=tag) }}">{{ tag }} ({{ count }})</a></li>
+<li><a href="{{ url_for('tag', tag=tag) }}" data-count="{{count}}">{{ tag }} ({{ count }})</a></li>
 {% endfor %}
 </ul>
 </a>

@@ -14,6 +14,17 @@ button,
   font-family: "IBM Plex Sans", sans-serif;
 }
 
+/* Horizontal margin for mobile phones */
+body {
+  padding: 0 1rem 0 1rem;
+}
+
+/* More legible */
+body, button, li, p {
+  font-size: 1.1rem;
+  line-height: 1.7;
+}
+
 h4 {
   font-weight: bold;
   font-size: 1.3rem;
@@ -66,8 +77,9 @@ dd {
 }
 
 code {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   border-radius: 5px;
+  border-style: hidden;
 }
 
 div.codehilite pre {
@@ -100,10 +112,13 @@ div.codehilite pre code span {
   font-weight: bold;
 }
 ul.side-nav li {
-  font-size: 1rem;
+  font-size: 1.1rem;
 }
 ul.taglist li a:not(.button) {
   padding: 0px 0.875rem;
+}
+ul.taglist li a[data-count="1"] {
+  opacity: 0.5;
 }
 
 /** Japanese pitch accent markers **/
