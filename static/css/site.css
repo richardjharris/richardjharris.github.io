@@ -84,6 +84,13 @@ dd {
   margin-left: 2rem;
 }
 
+/* Foundation abbr shows double underlines and is too subtle */
+abbr {
+  border: none;
+  text-decoration: none;
+  color: #008CBA;
+}
+
 code {
   font-size: 0.95rem;
   border-radius: 5px;

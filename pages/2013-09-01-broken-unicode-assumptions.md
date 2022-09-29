@@ -341,10 +341,10 @@ Thanks to James Stanley for catching some formatting errors.
 [specialcasing]: ftp://ftp.unicode.org/Public/UNIDATA/SpecialCasing.txt
 [tr26]: http://www.unicode.org/reports/tr26/
 
-_[PCRE]: Perl Compatible Regular Expressions library, used by many other languages
-_[ISO-8859-1]: aka Latin-1
-_[EBCDIC]: Extended Binary Coded Decimal Interchange Code, used by IBM mainframes
-_[POSIX]: Portable Operating System Interface, a family of OS compatibility standards
-_[CJKV]: Chinese, Japanese, Korean and Vietnamese
-_[BMP]: Basic Multilingual Plane
+*[PCRE]: Perl Compatible Regular Expressions library, used by many other languages
+*[ISO-8859-1]: aka Latin-1
+*[EBCDIC]: Extended Binary Coded Decimal Interchange Code, used by IBM mainframes
+*[POSIX]: Portable Operating System Interface, a family of OS compatibility standards
+*[CJKV]: Chinese, Japanese, Korean and Vietnamese
+*[BMP]: Basic Multilingual Plane
 [^vowel]: Vowel signs are used in scripts such Arabic where written vowels are optional.
