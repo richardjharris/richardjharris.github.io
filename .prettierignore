@@ -1,0 +1,2 @@
+# Prettier does not understand Emmet templating
+templates/*.html

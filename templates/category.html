@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ category }} - {{ super() }}{% endblock %}
 {% block content %}
-    <h2>List of stuff for category <em>{{ category }}</em></h2>
+    <h2><em>{{ category }}</em> articles</h2>
     {% with pages=pages  %}
         {% include "_list.html" %}
     {% endwith %}

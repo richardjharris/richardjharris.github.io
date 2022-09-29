@@ -22,3 +22,9 @@ Actions](https://github.com/richardjharris/richardjharris.github.io/blob/main/.g
 **serve**: serve the website as a Flask app and open browser. It will pick up local changes on browser refresh.
 
 **deploy**: manually deploys website to Github Pages. Normally, this is done using Gitlab Actions on push.
+
+### Todo
+
+- Markdown abbreviations don't seem to work
+- Design needs tweaking (maybe drop foundation entirely) - in particular headings for unicode assumptions article.
+- Consider even line height 2

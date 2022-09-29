@@ -41,7 +41,7 @@ article pre {
 /* Default h1 takes up too much space when wrapped. */
 article h1 {
   font-size: 2.6rem;
-  line-height: 1;
+  line-height: 1.2;
   margin-bottom: 1rem;
 }
 /* Attempt to improve furigana look */
@@ -49,14 +49,14 @@ ruby > rt {
   top: 0.5rem;
   position: relative;
   margin-top: -1rem;
-  font-size: 70%;
+  font-size: 0.7rem;
 }
 article rt {
   color: #292929;
 }
 article h1 rt {
   top: 1rem;
-  font-size: 60%;
+  font-size: 1.2rem;
   color: #0078a0;
 }
 
@@ -64,10 +64,18 @@ article h2 {
   font-size: 2rem;
 }
 
+p.article-date {
+  color: #888;
+  font-size: 0.8rem;
+  margin-top: -0.5rem;  /* overlap h1 above it */
+  margin-bottom: 0.75rem;
+  padding-left: 3px;
+}
+
 /* foundation makes table text smaller, not sure why */
 table tr th,
 table tr td {
-  font-size: 1rem;
+  font-size: 1.1rem;
 }
 
 /* dd is not indented by default */

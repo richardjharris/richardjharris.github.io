@@ -3,6 +3,7 @@ import os
 import regex
 import yaml
 import dateutil.parser
+import readtime
 import collections
 from operator import methodcaller
 from itertools import takewhile
@@ -11,10 +12,11 @@ from slugify import slugify
 from blog.render import render_page
 from html import escape as html_escape
 
+
 class Page:
     """Represents an article (content and metadata. Can be saved and loaded"""
     def __init__(self, title, body, path=None, category=None,
-            tags=None, date=None, summary=None, slug=None, visible=True):
+                 tags=None, date=None, summary=None, slug=None, visible=True):
         self.title = title
         self.body = body
         self.category = category
@@ -41,6 +43,22 @@ class Page:
     @property
     def featured(self):
         return ('featured' in self.tags)
+
+    @property
+    def readtime(self):
+        """
+        Returns the time it takes an average human to read this article,
+        e.g. '1 min'.
+        """
+        return readtime.of_text(self.body).text
+
+    @property
+    def day_ordinal(self):
+        """
+        Returns ordinal for the article creation day.
+        """
+        return _make_ordinal(self.date.day)
+
 
     # For titles, we support a simple and explicit form of furigana
     # (less complex than the articles do)
@@ -142,3 +160,19 @@ class Page:
     def _generate_slug(self):
         return slugify(self.title_reading, max_length=70, word_boundary=True)
 
+
+def _make_ordinal(n):
+    '''
+    Convert an integer into its ordinal representation::
+
+        make_ordinal(0)   => '0th'
+        make_ordinal(3)   => '3rd'
+        make_ordinal(122) => '122nd'
+        make_ordinal(213) => '213th'
+    '''
+    n = int(n)
+    if 11 <= (n % 100) <= 13:
+        suffix = 'th'
+    else:
+        suffix = ['th', 'st', 'nd', 'rd', 'th'][min(n % 10, 4)]
+    return suffix

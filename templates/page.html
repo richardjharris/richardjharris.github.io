@@ -3,6 +3,10 @@
 {% block content %}
 <article>
 <h1><a href="#">{{ page.title_html|safe }}</a></h1>
+<p class="article-date">
+    {{page.date.day}}<sup>{{ page.day_ordinal }}</sup> {{ page.date.strftime("%B %Y") }}</sup> 
+    &middot; {{ page.readtime }} read
+</p>
 {{ page.html|safe }}
 </article>
 {% endblock content %}
