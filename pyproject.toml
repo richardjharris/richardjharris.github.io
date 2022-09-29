@@ -1,0 +1,44 @@
+[tool.black]
+skip-string-normalization = "true"
+
+[tool.isort]
+profile = "black"
+skip_gitignore = "true"
+
+[tool.pylint.miscellaneous]
+notes = ["FIXME","TBD","XXX","TODO"]
+
+[tool.pylint.messages_control]
+disable = [
+    "missing-docstring",
+    "logging-fstring-interpolation",
+    "no-else-return",
+    "line-too-long",
+    "invalid-name",
+    "too-few-public-methods",
+    "no-value-for-parameter",
+    "no-member",
+    "broad-except",
+    "inconsistent-return-statements",
+    # I use pass to make lack of return obvious
+    "unnecessary-pass",
+    "no-else-raise",
+    # I use """...""" for comments
+    "pointless-string-statement",
+    # Overriding 'input' is useful most of the time
+    "redefined-builtin",
+    "global-statement",
+    # FPs
+    "consider-using-with",
+    # Will revisit later
+    "too-many-return-statements",
+    "too-many-branches",
+    "too-many-statements",
+    "too-many-locals",
+    "too-many-arguments",
+    "too-many-public-methods",
+    "too-many-instance-attributes",
+]
+
+[tool.pylint.design]
+max-returns = 8
