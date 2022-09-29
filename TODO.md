@@ -1,13 +1,4 @@
-### High priority
-
-- Design needs tweaking (maybe drop foundation entirely) - in particular headings for unicode assumptions article.
-- Consider even line height 2.0
-
-## Other
-
 - Update Werkzeug if needed (2.2.2)
-
-- Lint and reformat code.
 
 - consider a grunt/gulp based pipeline to minimise all assets
   before deployment.
@@ -17,8 +8,6 @@
 
 - unit tests (e.g. tags listing disappeared at one point,
   I didn't catch it)
-
-- front page: better date format
 
 - Google Analytics
 
