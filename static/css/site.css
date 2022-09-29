@@ -193,7 +193,7 @@ div.example-sentence p.en {
   border-bottom: 2px solid transparent;
   border-radius: 0.3rem;
   background: rgb(245, 244, 239);
-  padding: 0rem 0.2rem;
+  padding: 0.2rem 0.4rem;
   border-color: transparent;
   transition: background-color 0.3s, border-color 0.3s;
 }

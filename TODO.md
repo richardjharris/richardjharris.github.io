@@ -5,19 +5,12 @@
 
 ## Other
 
-- Markdown abbreviations don't seem to work
 - Update Werkzeug if needed (2.2.2)
 
 - Lint and reformat code.
 
 - consider a grunt/gulp based pipeline to minimise all assets
   before deployment.
-
-- the tooltips on e.g. http://localhost:8000/modern-japanese-causative-form/
-  are not very easy to see.
-
-  - make same as unicode ones
-  - more distinguishing of tooltip and non-tooltip highlights
 
 - formatting of example sentences is bad (Grey, small)
 - formatting of acronym tags should use tooltips and look like the others
