@@ -1,22 +1,35 @@
 """View, filter and edit markdown pages."""
+import collections
 import os
-import regex
-import yaml
+from datetime import datetime
+from html import escape as html_escape
+from itertools import takewhile
+from operator import methodcaller
+
 import dateutil.parser
 import readtime
-import collections
-from operator import methodcaller
-from itertools import takewhile
-from datetime import datetime
-from slugify import slugify
+import regex
+import yaml
+
 from blog.render import render_page
-from html import escape as html_escape
+from slugify import slugify
 
 
 class Page:
     """Represents an article (content and metadata. Can be saved and loaded"""
-    def __init__(self, title, body, path=None, category=None,
-                 tags=None, date=None, summary=None, slug=None, visible=True):
+
+    def __init__(
+        self,
+        title,
+        body,
+        path=None,
+        category=None,
+        tags=None,
+        date=None,
+        summary=None,
+        slug=None,
+        visible=True,
+    ):
         self.title = title
         self.body = body
         self.category = category
@@ -42,7 +55,7 @@ class Page:
 
     @property
     def featured(self):
-        return ('featured' in self.tags)
+        return 'featured' in self.tags
 
     @property
     def readtime(self):
@@ -59,7 +72,6 @@ class Page:
         """
         return _make_ordinal(self.date.day)
 
-
     # For titles, we support a simple and explicit form of furigana
     # (less complex than the articles do)
     FURIGANA_RE = regex.compile(r'\[(.*?)\]\{(.*?)\}')
@@ -67,8 +79,10 @@ class Page:
     @property
     def title_html(self):
         """Title with furigana represented as ruby tags"""
+
         def makeTag(m):
             return "<ruby>{}<rt>{}</rt></ruby>".format(*m.groups())
+
         title_safe = html_escape(self.title)
         html = regex.sub(self.FURIGANA_RE, makeTag, title_safe)
         return html
@@ -88,7 +102,9 @@ class Page:
         lines = open(path)
 
         # Read meta info until an empty line is encountered
-        meta = yaml.load('\n'.join(takewhile(methodcaller('strip'), lines)), Loader=yaml.SafeLoader)
+        meta = yaml.load(
+            '\n'.join(takewhile(methodcaller('strip'), lines)), Loader=yaml.SafeLoader
+        )
 
         # Lowercase (standardise) key case
         meta = dict((k.lower(), v) for k, v in meta.items())
@@ -99,7 +115,7 @@ class Page:
 
         content = ''.join(lines)
 
-        tags = { tag.strip() for tag in meta.get('tags', '').split(',') }
+        tags = {tag.strip() for tag in meta.get('tags', '').split(',')}
         tags.discard('')
 
         date = meta.get('date', None)
@@ -117,21 +133,24 @@ class Page:
         if date is None:
             # Default to the modified time
             date = datetime.fromtimestamp(os.path.getmtime(path))
-            
+
         return cls(
-            title = meta['title'],
-            slug = meta.get('slug', None),
-            body = content,
-            category = meta.get('category', None),
-            tags = tags,
-            date = date,
-            summary = meta.get('summary', None),
-            path = path,
-            visible = 'hidden' not in meta,
+            title=meta['title'],
+            slug=meta.get('slug', None),
+            body=content,
+            category=meta.get('category', None),
+            tags=tags,
+            date=date,
+            summary=meta.get('summary', None),
+            path=path,
+            visible='hidden' not in meta,
         )
 
     # TODO(rjh) Not currently tested.
     def save(self):
+        if not self.path:
+            raise Exception("path is None, cannot save")
+
         with open(self.path, 'w') as handle:
             meta = collections.OrderedDict()
             meta['Title'] = self.title

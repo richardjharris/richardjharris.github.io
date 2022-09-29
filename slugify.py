@@ -4,11 +4,11 @@ import types
 import sys
 
 from html.entities import name2codepoint
+
 _unicode = str
 _unicode_type = str
 
 import unidecode
-
 
 __all__ = ['slugify']
 
@@ -27,7 +27,9 @@ REPLACE2_REXP = re.compile(r'[^-a-z0-9]+')
 REMOVE_REXP = re.compile('-{2,}')
 
 
-def smart_truncate(string, max_length=0, word_boundaries=False, separator=' ', save_order=False):
+def smart_truncate(
+    string, max_length=0, word_boundaries=False, separator=' ', save_order=False
+):
     """Truncate a string.
     :param string (str): string for modification
     :param max_length (int): output string length
@@ -68,8 +70,17 @@ def smart_truncate(string, max_length=0, word_boundaries=False, separator=' ', s
     return truncated.strip(separator)
 
 
-def slugify(text, entities=True, decimal=True, hexadecimal=True, max_length=0, word_boundary=False,
-            separator='-', save_order=False, stopwords=()):
+def slugify(
+    text,
+    entities=True,
+    decimal=True,
+    hexadecimal=True,
+    max_length=0,
+    word_boundary=False,
+    separator='-',
+    save_order=False,
+    stopwords=(),
+):
     """Make a slug from the given text.
     :param text (str): initial text
     :param entities (bool):

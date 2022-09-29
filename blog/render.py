@@ -21,6 +21,7 @@ EXTENSION_CONFIGS = {
     },
 }
 
+
 def render_page(text):
     """Render Markdown article with custom extension list"""
     md = Markdown(extensions=EXTENSIONS, extension_configs=EXTENSION_CONFIGS)

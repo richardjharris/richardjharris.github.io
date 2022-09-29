@@ -1,8 +1,10 @@
 """Pages class represents one or more pages"""
 import os
-from .page import Page
 from collections import Counter
 from operator import attrgetter
+
+from .page import Page
+
 
 class Pages:
     """Filterable collection of pages under the given directory"""
@@ -28,7 +30,7 @@ class Pages:
                     pages.append(page)
             except Exception as err:
                 print("Error loading page " + path)
-                raise(err)
+                raise (err)
 
         self._pages = pages
 
