@@ -22,7 +22,7 @@ body {
 /* More legible */
 body, button, li, p {
   font-size: 1.1rem;
-  line-height: 2.0;
+  line-height: 1.7;
 }
 
 pre tt code {
