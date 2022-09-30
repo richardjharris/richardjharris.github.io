@@ -1,0 +1,252 @@
+<!doctype html>
+<!--[if IE 9]><html class="lt-ie10" lang="en" > <![endif]-->
+<html class="no-js" lang="en">
+<head>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;600&family=IBM+Plex+Sans:wght@400;600&display=swap" rel="stylesheet">
+
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>How I use unless - richardharris.github.io</title>
+<meta name="description" content=""/>
+<meta name="author" content="Richard Harris"/>
+<meta name="copyright" content="Richard Harris (c) "/>
+<link rel="stylesheet" href="/static/css/foundation.css"/>
+<link rel="stylesheet" href="/static/css/site.css"/>
+<link rel="apple-touch-icon" sizes="180x180" href="/static/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/icons/favicon-16x16.png">
+<link rel="manifest" href="/static/site.webmanifest">
+</head>
+<body>
+
+<div class="row">
+<div class="large-12 columns">
+<div class="nav-bar right">
+<ul class="button-group">
+<li><a href="/" class="button">Home</a></li>
+<li><a href="/about/" class="button">About</a></li>
+<li><a href="/featured/" class="button">Featured</a></li>
+</ul>
+</div>
+<h1><a href="/" class="logo">
+richardjharris</a><small>.github.io</small></h1>
+<hr/>
+</div>
+</div>
+
+
+<div class="row">
+
+<div class="large-9 columns" role="content">
+
+<article>
+<h1><a href="#">How I use unless</a></h1>
+<p class="article-date">
+    9<sup>th</sup> January 2013</sup> 
+    &middot; 2 min read
+</p>
+<p><code>unless</code> is a language construct that I think sums up Perl in many ways. In the right
+hands, such syntactic choices can bring the code closer to the problem domain, aid
+readability, and allow great freedom of expression. In the wrong hands, it can produce
+a horrible mess which nobody can understand.</p>
+<p>I have some simple heuristics for applying <code>unless</code> that have worked well for me and people
+who read my code:</p>
+<ol>
+<li>
+<p><strong>Use unless when the condition is negative.</strong></p>
+<p>You can avoid a double-negative by using <code>unless</code> with negatively-named variables or
+functions. For example:</p>
+<div class="codehilite"><pre><span></span><code><span class="n">lock</span><span class="p">()</span> <span class="k">unless</span> <span class="nv">$skip_locking</span><span class="p">;</span>
+</code></pre></div>
+
+<p>&hellip;compared with</p>
+<div class="codehilite"><pre><span></span><code><span class="n">lock</span><span class="p">()</span> <span class="k">if</span> <span class="o">!</span><span class="nv">$skip_locking</span><span class="p">;</span>
+</code></pre></div>
+
+</li>
+<li>
+<p><strong>Use unless to imply success.</strong></p>
+<p>Unlike the neutral <code>if</code>, <code>unless</code> implies that the block is likely to be executed
+(i.e. the condition is unlikely to occur, just as it does in English).
+It also implies that we <em>want</em> the block to execute.</p>
+<div class="codehilite"><pre><span></span><code><span class="k">unless</span> <span class="p">(</span><span class="nv">$going_to_throw_up</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">drink_shot</span><span class="p">();</span>  <span class="c1"># implication: throwing up is unlikely. Cheers!</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>vs.</p>
+<div class="codehilite"><pre><span></span><code><span class="k">if</span> <span class="p">(</span> <span class="o">!</span> <span class="nv">$going_to_throw_up</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="n">drink_shot</span><span class="p">();</span>   <span class="c1"># implication: uhm, I&#39;m feeling a little woozy...</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>Even the notorious double negative can work in this context.</p>
+<div class="codehilite"><pre><span></span><code><span class="k">unless</span> <span class="p">(</span> <span class="o">!</span> <span class="n">file_readable</span><span class="p">(</span><span class="nv">$fh</span><span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="c1"># do some shiz with $fh</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>Contrast with the more neutral <span style="white-space: nowrap"><code>if ( file_readable($fh) )</code></span>.</p>
+</li>
+<li>
+<p><strong>Don&rsquo;t use unless for complex expressions.</strong></p>
+<p>If the programmer needs to apply DeMorgan&rsquo;s law to understand the conditional,
+use <code>if</code> and apply it immediately. For instance, which of these two are more
+readable?</p>
+<div class="codehilite"><pre><span></span><code><span class="k">unless</span> <span class="p">(</span> <span class="nv">$have_work</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="nv">$sunday</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="n">sleep_in</span><span class="p">();</span>
+<span class="p">}</span>
+
+<span class="k">if</span> <span class="p">(</span> <span class="o">!</span><span class="nv">$have_work</span> <span class="o">||</span> <span class="nv">$sunday</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="n">sleep_in</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>Most likely, you had to mentally transform the <code>unless</code> to an <code>if</code> to understand
+it; in these cases, using <code>if</code> is better.</p>
+<p>Of course, even if you use <code>unless</code> because a conditional is simple, it could get
+more complicated later. Refactoring the conditional into its own function or method
+protects you from this.</p>
+<div class="codehilite"><pre><span></span><code><span class="k">unless</span> <span class="p">(</span> <span class="nv">$query</span><span class="o">-&gt;</span><span class="n">param</span><span class="p">(</span><span class="s">&#39;queue&#39;</span><span class="p">)</span>
+      <span class="ow">or</span> <span class="nv">$query</span><span class="o">-&gt;</span><span class="n">param</span><span class="p">(</span><span class="s">&#39;language&#39;</span><span class="p">)</span>
+      <span class="ow">or</span> <span class="nv">$query</span><span class="o">-&gt;</span><span class="n">param</span><span class="p">(</span><span class="s">&#39;domain&#39;</span><span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="c1"># Provide default status filter</span>
+<span class="p">}</span>
+
+<span class="k">unless</span> <span class="p">(</span><span class="nv">$query</span><span class="o">-&gt;</span><span class="n">has_status_filter</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1"># Provide default status filter</span>
+<span class="p">}</span>
+</code></pre></div>
+
+</li>
+<li>
+<p><strong>Don&rsquo;t use unless if you have an <code>elsif</code> or <code>else</code> block.</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="k">unless</span> <span class="p">(</span><span class="nv">$foo</span><span class="p">)</span> <span class="p">{</span>
+    <span class="o">...</span>
+<span class="p">}</span>
+<span class="k">else</span> <span class="p">{</span>
+    <span class="o">...</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>Yep.</p>
+</li>
+</ol>
+</article>
+
+</div>
+
+
+<aside class="large-3 columns sidebar">
+<div class="panel">
+<h5>First time here?</h5>
+<p>Have a look at my <a href="/featured/">featured articles</a>.</p>
+</div>
+<h5>Categories</h5>
+<ul class="side-nav">
+
+<li><a href="/category/Japanese/">Japanese</a></li>
+
+<li><a href="/category/Programming/">Programming</a></li>
+
+<li><a href="/category/Wellbeing/">Wellbeing</a></li>
+
+</ul>
+<h5>Tags</h5>
+<ul class="side-nav taglist">
+
+<li><a href="/tag/programming/" data-count="8">programming (8)</a></li>
+
+<li><a href="/tag/japanese/" data-count="7">japanese (7)</a></li>
+
+<li><a href="/tag/perl/" data-count="7">perl (7)</a></li>
+
+<li><a href="/tag/featured/" data-count="4">featured (4)</a></li>
+
+<li><a href="/tag/unicode/" data-count="2">unicode (2)</a></li>
+
+<li><a href="/tag/pbp/" data-count="2">pbp (2)</a></li>
+
+<li><a href="/tag/dart/" data-count="1">dart (1)</a></li>
+
+<li><a href="/tag/problems/" data-count="1">problems (1)</a></li>
+
+<li><a href="/tag/python/" data-count="1">python (1)</a></li>
+
+<li><a href="/tag/wellbeing/" data-count="1">wellbeing (1)</a></li>
+
+<li><a href="/tag/book-summary/" data-count="1">book-summary (1)</a></li>
+
+<li><a href="/tag/productivity/" data-count="1">productivity (1)</a></li>
+
+<li><a href="/tag/faq/" data-count="1">faq (1)</a></li>
+
+<li><a href="/tag/gotcha/" data-count="1">gotcha (1)</a></li>
+
+<li><a href="/tag/heatmap/" data-count="1">heatmap (1)</a></li>
+
+<li><a href="/tag/cpan/" data-count="1">cpan (1)</a></li>
+
+<li><a href="/tag/git/" data-count="1">git (1)</a></li>
+
+<li><a href="/tag/datetime/" data-count="1">datetime (1)</a></li>
+
+<li><a href="/tag/stackoverflow/" data-count="1">stackoverflow (1)</a></li>
+
+</ul>
+</a>
+<h5>Other sites</h5>
+<ul class="side-nav taglist">
+<li><a href="https://github.com/richardjharris">GitHub</a></li>
+</ul>
+<div class="text-center">
+<!-- stackoverflow badge. slow so lazy-load it -->
+<a href="https://stackoverflow.com/users/74496/rjh">
+<img id="stack" data-original="https://stackoverflow.com/users/flair/74496.png"
+    width="208" height="58" alt="Link to stackoverflow profile"
+    title="stackoverflow profile">
+    <noscript>
+    <img src="https://stackoverflow.com/users/flair/74496.png"
+    width="208" height="58" alt="Link to stackoverflow profile"
+    title="stackoverflow profile">
+    </noscript>
+</a>
+<!-- end badge -->
+</div>
+</aside>
+
+</div>
+
+<footer class="row">
+<div class="large-12 columns">
+<hr/>
+<div class="row">
+<div class="large-6 columns">
+<p>&copy; Richard Harris 2022.</p>
+</div>
+<div class="large-6 columns">
+<p class="right">
+Made with <a href="https://foundation.zurb.com/">Foundation</a> and <a href="https://flask.palletsprojects.com/en/2.1.x/">Flask</a>.
+</p>
+</div>
+</div>
+</div>
+</footer>
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/qtip2/2.2.1/jquery.qtip.min.css" />
+<script src="/static/js/vendor/jquery.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/qtip2/2.2.1/basic/jquery.qtip.min.js"></script>
+<script src="/static/js/unicode-tooltips.js"></script>
+<script>
+      $(document).ready(function(){
+        $('.unichar').each(add_unicode_tooltip);
+        $('.an').each(add_annotation_tooltip);
+        // For debugging tooltip HTML
+        // $('.an').each(function() { $(this).qtip('toggle', true); });
+
+        $('#stack').attr('src', $('#stack').data('original'));
+      });
+    </script>
+</body>
+</html>

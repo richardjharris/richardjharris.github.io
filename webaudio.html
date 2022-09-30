@@ -1,0 +1,465 @@
+<html>
+  <style>
+    body {
+      background: #111;
+    }
+
+    div {
+      float: left;
+      color: #ddd;
+    }
+
+    #wrapper {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      outline: 1px solid white;
+    }
+
+    #buttons {
+      grid-column: 1 / 2;
+      grid-row: 1;
+      padding: 10px;
+    }
+
+    #startButton {
+      background-color: rgb(150,255,150);
+    }
+
+    #sliders {
+      grid-column: 1;
+      display: grid;
+      grid-template-columns: 1fr 3fr 1fr;
+      grid-gap: 10px;
+      padding: 10px;
+      align-items: center;t
+    }
+
+    #sliders label {
+      grid-column: 1 / 2;
+      text-align: right;
+      padding: 0.5em 0.5em 0.5em 0;
+    }
+
+    #sliders input {
+      grid-column: 2 / 3;
+      margin-bottom: 0.5em;
+    }
+
+    #sliders output {
+      grid-column: 3 / 4;
+      padding: 0.5em 0 0.5em 0.5em;
+    }
+
+    #scope {
+      grid-column: 2;
+      grid-row: 2;
+    }
+
+    #spectrum {
+      grid-column: 2;
+      grid-row: 3;
+    }
+
+    #filterview {
+      grid-column: 1;
+      grid-row: 3;
+    }
+  </style>
+
+  <body>
+    <div id="wrapper">
+      <div id="buttons">
+        <button id="startButton" onclick="start()">Start sound</button>
+        <button id="play" onclick="silence()">Silence!</button>
+      </div>
+      <div id="sliders">
+          <label for="gain">Gain</label>
+          <input
+            id="gain"
+            type="range"
+            value="0.5"
+            min="0.0"
+            max="1.0"
+            step="0.02"
+            oninput="gainInp(value)"
+          />
+          <output for="gain" id="gainVal"></output>
+
+          <label for="freq">Freq</label>
+          <input
+            id="freq"
+            type="range"
+            value="440"
+            min="27.50"
+            max="4186.00"
+            step="0.05"
+            oninput="freqInp(value)"
+          />
+          <output for="freq" id="freqVal">440.0</output>
+
+          <label for="shape">Shape</label>
+          <input
+            id="shape"
+            type="range"
+            value="5"
+            min="1"
+            max="5"
+            step="1"
+            oninput="shapeInp(value)"
+          />
+          <output for="shape" id="shapeVal"></output>
+
+          <label for="pulse-width">Pulse width</label>
+          <input
+            id="pulse-width"
+            type="range"
+            value="0.5"
+            min="0.01"
+            max="0.99"
+            step="0.01"
+            oninput="pulseWidthInp(value)"
+          />
+          <output for="pulse-width" id="pulseWidthVal"></output>
+
+          <label for="pulse-width">PW LFO Gain</label>
+          <input
+            id="pulse-width-lfo-gain"
+            type="range"
+            value="0.5"
+            min="0.0"
+            max="1.0"
+            step="0.05"
+            oninput="pwLfoGainInp(value)"
+          />
+          <output for="pulse-width" id="pwLfoGainVal"></output>
+
+          <label for="pulse-width">PW LFO Rate</label>
+          <input
+            id="pulse-width-lfo-rate"
+            type="range"
+            value="1.0"
+            min="0.0"
+            max="5.0"
+            step="0.5"
+            oninput="pwLfoRateInp(value)"
+          />
+          <output for="pulse-width" id="pwLfoRateVal"></output>
+
+          <label for="lpf-freq">LPF Freq</label>
+          <input
+            id="lpf-freq"
+            type="range"
+            value="1"
+            min="0.0"
+            max="1.0"
+            step="0.01"
+            oninput="lpfFreqInp(value)"
+          />
+          <output for="lpf-freq" id="lpfFreqVal"></output>
+
+          <label for="lpf-res">LPF Resonance</label>
+          <input
+            id="lpf-res"
+            type="range"
+            value="0"
+            min="0.0"
+            max="1.0"
+            step="0.05"
+            oninput="lpfResInp(value)"
+          />
+          <output for="lpf-res" id="lpfResVal"></output>
+      </div>
+
+      <canvas id="scope" width="400" height="200"></canvas>
+      <canvas id="spectrum" width="400" height="200"></canvas>
+      <canvas id="filterview" width="400" height="200"></canvas>
+    </div>
+  </body>
+  <script>
+    var auCtx = new AudioContext();
+    var osc = auCtx.createOscillator();
+    var usingPwm = false;
+    var gain = auCtx.createGain();
+    var dest = auCtx.destination;
+    var analyser = auCtx.createAnalyser();
+    analyser.fftSize = 2048;
+
+    var lpf = auCtx.createBiquadFilter();
+    lpf.type = "lowpass";
+  
+    // Precalculate some values for the LPF setting
+    var minValue = 40;
+    var nyquist = auCtx.sampleRate / 2;
+    var maxValue = nyquist;
+    // base 2 log to compute how many octaves fall in the range
+    var numberOfOctaves = Math.log(maxValue / minValue) / Math.LN2;
+
+    // PWM (not connected)
+    var pwm = new GainNode(auCtx);
+    var pwmSaw1 = new OscillatorNode(auCtx, { type: 'sawtooth' });
+    var pwmSaw2 = new OscillatorNode(auCtx, { type: 'sawtooth' });
+    var inverter = new GainNode(auCtx, { gain: -1 });
+
+    // LFO for modulating delay
+    var pwmLfo = new OscillatorNode(auCtx, { type: 'triangle' });
+    pwmLfo.frequency.value = 0.5;
+    var pwmLfoGain = new GainNode(auCtx);
+    pwmLfo.connect(pwmLfoGain);
+
+
+    // Duty cycle 0-1 comes from a delay between 0 and (1/f)
+    // Default delay is 0 ? Needs updating when frequency updates?
+    // 
+    // TODO: LFO kind of works when set to nearly min values
+    // But it overwrites the original delayTime value.
+    var pwmDelay = new DelayNode(auCtx);
+    pwmLfoGain.connect(pwmDelay.delayTime);
+    pwmSaw2.connect(pwm);
+    pwmSaw1.connect(inverter);
+    inverter.connect(pwmDelay);
+    pwmDelay.connect(pwm);
+
+    osc.connect(lpf);
+    lpf.connect(gain);
+
+    // A signal loud enough for the analyser to display is usually too
+    // loud for the ear, so attenuate it
+    attenuator = new GainNode(auCtx, { gain: 0.1 });
+    gain.connect(attenuator);
+    attenuator.connect(dest);
+
+    gain.connect(analyser);
+
+    gainInp(0.5);
+    shapeInp("5");  // ugh this needs to be a string
+    lpfFreqInp(1);
+    lpfResInp(0.0);
+    pulseWidthInp(0.5);
+    pwLfoRateInp(0.5);
+    pwLfoGainInp(2.5);
+    // Unfortunately this needs to be last (?), if called before
+    // the pw stuff, it breaks.
+    freqInp(440.0);
+
+    function start() {
+      osc.start();
+      pwmSaw1.start();
+      pwmSaw2.start();
+      pwmLfo.start();
+      document.querySelector("#startButton").style.display = "none";
+    }
+
+    var scopeCtx = document.getElementById("scope").getContext("2d");
+    var spectCtx = document.getElementById("spectrum").getContext("2d");
+    var filterViewCtx = document.getElementById('filterview').getContext('2d');
+
+    draw();
+
+    function gainInp(val) {
+      document.querySelector("#gainVal").value = val;
+      gain.gain.value = val;
+    }
+
+    function freqInp(val) {
+      document.querySelector("#freqVal").value = freqToStr(val);
+      // TODO figure out how to drive these from a single gain
+      osc.frequency.value = val;
+      pwmSaw1.frequency.value = val;
+      pwmSaw2.frequency.value = val;
+      // Update delay too, as they are based on frequency
+      pulseWidthInp(document.querySelector('#pulse-width').value);
+      pwLfoGainInp(document.querySelector('#pulse-width-lfo-gain').value);
+    }
+
+    function shapeInp(val) {
+      var type;
+      switch (val) {
+        case "2":
+          type = "square";
+          break;
+        case "3":
+          type = "sawtooth";
+          break;
+        case "4":
+          type = "triangle";
+          break;
+        case "5":
+          type = "pwm";
+          break;
+        default:
+          type = "sine";
+          break;
+      }
+      document.querySelector("#shapeVal").value = type;
+      if (type === "pwm") {
+        // Connect up pwm osc
+        osc.disconnect(lpf);
+        pwm.connect(lpf);
+        usingPwm = true;
+        document.querySelector('#pulse-width').disabled = false;
+        document.querySelector('#pulse-width-lfo-gain').disabled = false;
+        document.querySelector('#pulse-width-lfo-rate').disabled = false;
+      } else {
+        if (usingPwm) {
+          pwm.disconnect(lpf);
+          osc.connect(lpf);
+          usingPwm = false;
+        }
+        osc.type = type;
+        document.querySelector('#pulse-width').disabled = true;
+        document.querySelector('#pulse-width-lfo-gain').disabled = true;
+        document.querySelector('#pulse-width-lfo-rate').disabled = true;
+      }
+    }
+
+    function pulseWidthInp(val) {
+      document.querySelector('#pulseWidthVal').value = val;
+      pwmDelay.delayTime.value = val * (1.0/osc.frequency.value);
+    }
+
+    function pwLfoGainInp(val) {
+      document.querySelector('#pwLfoGainVal').value = val;
+      pwmLfoGain.gain.value = ((val / 2) * (1.0/osc.frequency.value));
+    }
+
+    function pwLfoRateInp(val) {
+      document.querySelector('#pwLfoRateVal').value = val;
+      pwmLfo.frequency.setValueAtTime(val, auCtx.currentTime);
+    }
+
+    function lpfFreqInp(val) {
+      // Compute multiplier from 0-1 based on an exponential scale.
+      var multiplier = Math.pow(2, numberOfOctaves * (val - 1.0));
+      val = maxValue * multiplier;
+
+      document.querySelector("#lpfFreqVal").value = freqToStr(val);
+      lpf.frequency.value = val;
+    }
+
+    function lpfResInp(val) {
+      // Map 0-1 slider to 0-30 resonance value, linearly.
+      val *= 30;
+      document.querySelector("#lpfResVal").value = val.toFixed(2);
+      lpf.Q.value = val;
+    }
+
+    function silence() {
+      gain.gain.value = 0;
+    }
+
+    function draw() {
+      drawSpectrum(analyser, spectCtx);
+      drawScope(analyser, scopeCtx);
+      drawFilterResponse(lpf, filterViewCtx);
+
+      requestAnimationFrame(draw);
+    }
+
+    function drawSpectrum(analyser, ctx) {
+      var width = ctx.canvas.width;
+      var height = ctx.canvas.height;
+      var freqData = new Uint8Array(analyser.frequencyBinCount);
+      var scaling = height / 256;
+
+      analyser.getByteFrequencyData(freqData);
+
+      ctx.clearRect(0, 0, width, height);
+
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgb(200, 200, 200)";
+      ctx.beginPath();
+
+      for (var x = 0; x < width; x++)
+        ctx.lineTo(x, height - freqData[x] * scaling);
+
+      ctx.stroke();
+    }
+
+    function drawScope(analyser, ctx) {
+      var width = ctx.canvas.width;
+      var height = ctx.canvas.height;
+      var timeData = new Uint8Array(analyser.frequencyBinCount);
+      var scaling = height / 256;
+      var risingEdge = 0;
+      var edgeThreshold = 5;
+
+      analyser.getByteTimeDomainData(timeData);
+
+      ctx.clearRect(0, 0, width, height);
+
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgb(200, 200, 255)";
+      ctx.beginPath();
+
+      // No buffer overrun protection
+      while (timeData[risingEdge++] - 128 > 0 && risingEdge <= width);
+      if (risingEdge >= width) risingEdge = 0;
+
+      while (
+        timeData[risingEdge++] - 128 < edgeThreshold &&
+        risingEdge <= width
+      );
+      if (risingEdge >= width) risingEdge = 0;
+
+      for (
+        var x = risingEdge;
+        x < timeData.length && x - risingEdge < width;
+        x++
+      )
+        ctx.lineTo(x - risingEdge, height - timeData[x] * scaling);
+
+      ctx.stroke();
+    }
+
+    function drawFilterResponse(filter, ctx) {
+      var width = ctx.canvas.width;
+      var height = ctx.canvas.height;
+      ctx.clearRect(0, 0, width, height);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgb(200, 200, 255)';
+      ctx.beginPath();
+      ctx.moveTo(0,0);
+
+      var dbScale = 60; // ??
+      var pixelsPerDb = (0.5 * height) / dbScale;
+
+      var noactives = 11;
+      var frequencyHz = new Float32Array(width);
+      var magResponse = new Float32Array(width);
+      var phaseResponse = new Float32Array(width);
+
+      for (var i = 0; i < width; i++) {
+        var f = i / width;
+        // Convert to log frequency scale (octaves)
+        f = nyquist * Math.pow(2.0, noactives * (f - 1.0));
+        frequencyHz[i] = f;
+      }
+
+      filter.getFrequencyResponse(frequencyHz, magResponse, phaseResponse);
+
+      // Draw graph
+      for (var i = 0; i < width; i++) {
+        var f = magResponse[i];
+        var response = magResponse[i];
+        var dbResponse = 20.0 * Math.log(response ) / Math.LN10;
+
+        var x = i;
+        // Convert db to y
+        var y = (0.5 * height) - pixelsPerDb * dbResponse;
+        if (i == 0) {
+          ctx.moveTo(x,y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+
+        ctx.stroke();
+      }
+    }
+
+    function freqToStr(val) {
+      val = Number.parseFloat(val);
+      var digits = val < 10 ? 4 : (val < 100 ? 3 : (val < 1000 ? 2 : (val < 10000 ? 1 : 0)));
+      return val.toFixed(digits);
+    }
+  </script>
+</html>
